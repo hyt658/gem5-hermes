@@ -105,8 +105,11 @@ class MemPacket
     /** When will request leave the controller */
     Tick readyTime;
 
-    /** This comes from the outside world */
-    const PacketPtr pkt;
+    /**
+     * This comes from the outside world. Not const since a Hermes read packet
+     * could be replaced by a regular read packet that merges with it.
+     */
+    PacketPtr pkt;
 
     /** RequestorID associated with the packet */
     const RequestorID _requestorId;
@@ -276,11 +279,43 @@ class MemCtrl : public qos::MemCtrl
 
     };
 
+    // Hermes requests are one-way: their data reaches the core only through
+    // a regular read that waits on them, so a wrong prediction never affects
+    // correctness. This port never sends a response or refuses a request.
+    class HermesPort : public ResponsePort
+    {
+
+        MemCtrl& ctrl;
+
+      public:
+
+        HermesPort(const std::string& name, MemCtrl& _ctrl);
+
+      protected:
+
+        Tick recvAtomic(PacketPtr pkt) override;
+
+        void recvFunctional(PacketPtr pkt) override;
+
+        bool recvTimingReq(PacketPtr pkt) override;
+
+        void recvRespRetry() override;
+
+        AddrRangeList getAddrRanges() const override;
+
+    };
+
     /**
      * Our incoming port, for a multi-ported controller add a crossbar
      * in front of it
      */
     MemoryPort port;
+
+    /**
+     * Incoming port for Hermes requests, which bypass the caches and
+     * the crossbar in front of the controller
+     */
+    HermesPort hermesPort;
 
     /**
      * Remember if the memory system is in timing mode
@@ -787,6 +822,18 @@ class MemCtrl : public qos::MemCtrl
     virtual void recvMemBackdoorReq(const MemBackdoorReq &req,
             MemBackdoorPtr &backdoor);
     virtual bool recvTimingReq(PacketPtr pkt);
+
+    // Accept a Hermes request from the Hermes port. If the read queue is full
+    // or the burst already has a read in flight, the request is dropped.
+    void recvHermesReq(PacketPtr pkt);
+
+    // Find an unfinished read of this burst, whether it is still in the read
+    // queue or already waiting for its data in the response queue.
+    MemPacket* findInFlightRead(Addr burst_addr) const;
+
+    // Let a regular read take over an in-flight Hermes read of the same burst,
+    // so it needs no DRAM read of its own. Returns true if it did.
+    bool mergeWithHermes(PacketPtr pkt);
 
     bool recvFunctionalLogic(PacketPtr pkt, MemInterface* mem_intr);
     Tick recvAtomicLogic(PacketPtr pkt, MemInterface* mem_intr);

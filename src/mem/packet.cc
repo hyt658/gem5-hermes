@@ -237,6 +237,9 @@ MemCmd::commandInfo[] =
     { {IsRead, IsResponse}, InvalidCmd, "HTMReqResp" },
     { {IsRead, IsRequest}, InvalidCmd, "HTMAbort" },
     { {IsRequest}, InvalidCmd, "TlbiExtSync" },
+    /* HermesReadReq - Speculative read sent by the core directly to the
+     * memory controller. It never carries data back to the requestor. */
+    { {IsRead, IsRequest}, InvalidCmd, "HermesReadReq" },
 };
 
 AddrRange
