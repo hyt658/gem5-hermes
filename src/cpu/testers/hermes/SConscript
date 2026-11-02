@@ -1,0 +1,9 @@
+# -*- mode:python -*-
+
+Import('*')
+
+SimObject('HermesTester.py', sim_objects=['HermesTester'])
+
+Source('hermes_tester.cc')
+
+DebugFlag('HermesTester')
