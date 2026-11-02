@@ -59,7 +59,8 @@ namespace memory
 
 MemCtrl::MemCtrl(const MemCtrlParams &p) :
     qos::MemCtrl(p),
-    port(name() + ".port", *this), isTimingMode(false),
+    port(name() + ".port", *this),
+    hermesPort(name() + ".hermes_port", *this), isTimingMode(false),
     retryRdReq(false), retryWrReq(false),
     nextReqEvent([this] {processNextReqEvent(dram, respQueue,
                          respondEvent, nextReqEvent, retryWrReq);}, name()),
@@ -103,6 +104,10 @@ MemCtrl::init()
         fatal("MemCtrl %s is unconnected!\n", name());
     } else {
         port.sendRangeChange();
+    }
+
+    if (hermesPort.isConnected()) {
+        hermesPort.sendRangeChange();
     }
 }
 
@@ -461,7 +466,13 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
     } else {
         assert(pkt->isRead());
         assert(size != 0);
-        if (readQueueFull(pkt_count)) {
+        // Hermes read only handles one burst.
+        // try to merge first, since a merged read reuses the Hermes entry
+        // and can be accepted even when the read queue is full
+        if (pkt_count == 1 && mergeWithHermes(pkt)) {
+            stats.readReqs++;
+            stats.bytesReadSys += size;
+        } else if (readQueueFull(pkt_count)) {
             DPRINTF(MemCtrl, "Read queue full, not accepting\n");
             // remember that we have to retry this port
             retryRdReq = true;
@@ -481,6 +492,102 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
         }
     }
 
+    return true;
+}
+
+void
+MemCtrl::recvHermesReq(PacketPtr pkt)
+{
+    DPRINTF(MemCtrl, "recvHermesReq: request %s addr %#x size %d\n",
+            pkt->cmdString(), pkt->getAddr(), pkt->getSize());
+
+    panic_if(!pkt->isHermes(), "Only Hermes requests are expected on the "
+             "Hermes port, got %s\n", pkt->print());
+
+    panic_if(!(dram->getAddrRange().contains(pkt->getAddr())),
+             "Can't handle address range for packet %s\n", pkt->print());
+
+    // a Hermes request reads one cache line, which must fit in one burst so
+    // that it can later be matched with the regular read of the same line
+    uint32_t burst_size = dram->bytesPerBurst();
+    unsigned offset = pkt->getAddr() & (burst_size - 1);
+    unsigned int pkt_count = divCeil(offset + pkt->getSize(), burst_size);
+
+    panic_if(pkt_count != 1, "Hermes request must fit in one memory burst, "
+             "got %s\n", pkt->print());
+
+    // run the QoS scheduler and assign a QoS priority value to the packet
+    qosSchedule( { &readQueue, &writeQueue }, burst_size, pkt);
+
+    if (readQueueFull(pkt_count)) {
+        DPRINTF(MemCtrl, "Read queue full, dropping Hermes request\n");
+        pendingDelete.reset(pkt);
+        return;
+    }
+
+    // a read of this burst is already in flight, so current Hermes read is useless.
+    if (findInFlightRead(burstAlign(pkt->getAddr(), dram))) {
+        DPRINTF(MemCtrl, "Read in flight, dropping Hermes request\n");
+        pendingDelete.reset(pkt);
+        return;
+    }
+
+    if (!addToReadQueue(pkt, pkt_count, dram)) {
+        // If we are not already scheduled to get a request out of the
+        // queue, do so now
+        if (!nextReqEvent.scheduled()) {
+            DPRINTF(MemCtrl, "Request scheduled immediately\n");
+            schedule(nextReqEvent, curTick());
+        }
+    }
+}
+
+MemPacket*
+MemCtrl::findInFlightRead(Addr burst_addr) const
+{
+    for (const auto& queue : readQueue) {
+        for (const auto& mem_pkt : queue) {
+            if (burstAlign(mem_pkt->addr, dram) == burst_addr) {
+                return mem_pkt;
+            }
+        }
+    }
+
+    for (const auto& mem_pkt : respQueue) {
+        if (burstAlign(mem_pkt->addr, dram) == burst_addr) {
+            return mem_pkt;
+        }
+    }
+
+    return nullptr;
+}
+
+bool
+MemCtrl::mergeWithHermes(PacketPtr pkt)
+{
+    if (!hermesPort.isConnected()) {
+        return false;
+    }
+
+    Addr burst_addr = burstAlign(pkt->getAddr(), dram);
+
+    // the write queue holds newer data than an ongoing DRAM read
+    if (isInWriteQueue.find(burst_addr) != isInWriteQueue.end()) {
+        return false;
+    }
+
+    // only a Hermes read can be taken over, any other read has its own owner
+    MemPacket* mem_pkt = findInFlightRead(burst_addr);
+    if (!mem_pkt || !mem_pkt->pkt->isHermes()) {
+        return false;
+    }
+
+    DPRINTF(MemCtrl, "Read to addr %#x merged with Hermes request\n",
+            pkt->getAddr());
+
+    // the DRAM access keeps its place, and now answers the regular read
+    pendingDelete.reset(mem_pkt->pkt);
+    mem_pkt->pkt = pkt;
     return true;
 }
 
@@ -623,6 +730,13 @@ MemCtrl::accessAndRespond(PacketPtr pkt, Tick static_latency,
                                                 MemInterface* mem_intr)
 {
     DPRINTF(MemCtrl, "Responding to Address %#x.. \n", pkt->getAddr());
+
+    // a Hermes request has no data buffer and nobody waiting for it, so
+    // it only models the DRAM read and must not access the backing store
+    if (pkt->isHermes()) {
+        pendingDelete.reset(pkt);
+        return;
+    }
 
     bool needsResponse = pkt->needsResponse();
     // do the actual memory access which also turns the packet into a
@@ -1406,10 +1520,12 @@ MemCtrl::recvFunctionalLogic(PacketPtr pkt, MemInterface* mem_intr)
 Port &
 MemCtrl::getPort(const std::string &if_name, PortID idx)
 {
-    if (if_name != "port") {
-        return qos::MemCtrl::getPort(if_name, idx);
-    } else {
+    if (if_name == "port") {
         return port;
+    } else if (if_name == "hermes_port") {
+        return hermesPort;
+    } else {
+        return qos::MemCtrl::getPort(if_name, idx);
     }
 }
 
@@ -1532,6 +1648,44 @@ void
 MemCtrl::MemoryPort::disableSanityCheck()
 {
     queue.disableSanityCheck();
+}
+
+MemCtrl::HermesPort::
+HermesPort(const std::string& name, MemCtrl& _ctrl)
+    : ResponsePort(name), ctrl(_ctrl)
+{ }
+
+AddrRangeList
+MemCtrl::HermesPort::getAddrRanges() const
+{
+    return ctrl.getAddrRanges();
+}
+
+Tick
+MemCtrl::HermesPort::recvAtomic(PacketPtr pkt)
+{
+    panic("%s only supports timing requests, got %s\n", name(), pkt->print());
+}
+
+void
+MemCtrl::HermesPort::recvFunctional(PacketPtr pkt)
+{
+    panic("%s only supports timing requests, got %s\n", name(), pkt->print());
+}
+
+bool
+MemCtrl::HermesPort::recvTimingReq(PacketPtr pkt)
+{
+    // always accept since recvHermesReq() either queues the request or drops it
+    // returning false would need a retry, which this port never sends
+    ctrl.recvHermesReq(pkt);
+    return true;
+}
+
+void
+MemCtrl::HermesPort::recvRespRetry()
+{
+    panic("%s never sends responses\n", name());
 }
 
 } // namespace memory

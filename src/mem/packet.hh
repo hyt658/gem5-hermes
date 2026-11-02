@@ -149,6 +149,8 @@ class MemCmd
         HTMAbort,
         // Tlb shootdown
         TlbiExtSync,
+        // Hermes speculative read sent directly to the memory controller
+        HermesReadReq,
         NUM_MEM_CMDS
     };
 
@@ -257,6 +259,7 @@ class MemCmd
     bool isError() const        { return testCmdAttrib(IsError); }
     bool isPrint() const        { return testCmdAttrib(IsPrint); }
     bool isFlush() const        { return testCmdAttrib(IsFlush); }
+    bool isHermes() const       { return cmd == HermesReadReq; }
 
     bool
     isDemand() const
@@ -622,6 +625,7 @@ class Packet : public Printable, public Extensible<Packet>
     bool isError() const             { return cmd.isError(); }
     bool isPrint() const             { return cmd.isPrint(); }
     bool isFlush() const             { return cmd.isFlush(); }
+    bool isHermes() const            { return cmd.isHermes(); }
 
     bool isWholeLineWrite(unsigned blk_size)
     {

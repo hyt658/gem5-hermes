@@ -61,6 +61,9 @@ class MemCtrl(QoSMemCtrl):
     # bus in front of the controller for multiple ports
     port = ResponsePort("This port responds to memory requests")
 
+    # port for Hermes requests sent directly by the core
+    hermes_port = ResponsePort("This port receives Hermes requests")
+
     # Interface to memory media
     dram = Param.MemInterface(
         "Memory interface, can be a DRAMor an NVM interface "
