@@ -3,6 +3,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "base/statistics.hh"
@@ -77,6 +78,12 @@ class HermesTester : public ClockedObject
     /** Position in the script of each outstanding regular read */
     std::unordered_map<PacketPtr, size_t> readIndex;
 
+    /** Value of every byte of a line written by a regular write */
+    static constexpr uint8_t writeValue = 0xa5;
+
+    /** Lines written so far, which later reads must see */
+    std::unordered_set<Addr> writtenLines;
+
     const unsigned blockSize;
 
     /** Request ids for the regular and the Hermes traffic */
@@ -95,6 +102,9 @@ class HermesTester : public ClockedObject
     void sendRegular(MemCmd cmd, Addr addr);
 
     void recvResponse(PacketPtr pkt);
+
+    /** Panic if a read did not return the last data written to its line */
+    void checkReadData(PacketPtr pkt) const;
 
     void recvRetry();
 

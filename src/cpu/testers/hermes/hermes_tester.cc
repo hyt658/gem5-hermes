@@ -134,10 +134,12 @@ HermesTester::sendRegular(MemCmd cmd, Addr addr)
     PacketPtr pkt = makePacket(cmd, addr, requestorId);
     pkt->allocate();
 
-    if (pkt->isWrite())
-        std::memset(pkt->getPtr<uint8_t>(), 0xa5, blockSize);
-    else
+    if (pkt->isWrite()) {
+        std::memset(pkt->getPtr<uint8_t>(), writeValue, blockSize);
+        writtenLines.insert(addr);
+    } else {
         readIndex[pkt] = readsSent++;
+    }
 
     stats.regularSent++;
 
@@ -154,11 +156,27 @@ HermesTester::recvResponse(PacketPtr pkt)
     stats.regularResponses++;
 
     if (pkt->isRead()) {
+        checkReadData(pkt);
         stats.readLatency[readIndex.at(pkt)] = curTick() - pkt->req->time();
         readIndex.erase(pkt);
     }
 
     delete pkt;
+}
+
+void
+HermesTester::checkReadData(PacketPtr pkt) const
+{
+    // memory starts as zeros, and a write always fills a whole line
+    const uint8_t expected =
+        writtenLines.count(pkt->getAddr()) ? writeValue : 0;
+    const uint8_t *data = pkt->getConstPtr<uint8_t>();
+
+    for (unsigned i = 0; i < pkt->getSize(); i++) {
+        panic_if(data[i] != expected,
+                 "%s: read of %#x got %#x at byte %d, expected %#x\n", name(),
+                 pkt->getAddr(), unsigned(data[i]), i, unsigned(expected));
+    }
 }
 
 void
