@@ -54,6 +54,7 @@
 #include "debug/O3PipeView.hh"
 #include "mem/packet.hh"
 #include "mem/request.hh"
+#include "sim/system.hh"
 
 namespace gem5
 {
@@ -269,6 +270,8 @@ LSQUnit::LSQUnitStats::LSQUnitStats(statistics::Group *parent)
       ADD_STAT(blockedByCache, statistics::units::Count::get(),
                "Number of times an access to memory failed due to the cache "
                "being blocked"),
+      ADD_STAT(hermesIssued, statistics::units::Count::get(),
+               "Number of Hermes requests issued by loads"),
       ADD_STAT(loadToUse, "Distribution of cycle latency between the "
                 "first time a load is issued and its completion")
 {
@@ -1313,6 +1316,40 @@ LSQUnit::cacheLineSize()
     return cpu->cacheLineSize();
 }
 
+void
+LSQUnit::tryIssueHermes(const DynInstPtr &load_inst, LSQRequest *request)
+{
+    // avoid to issue Hermes request if it is not enabled or if it has 
+    // already been issued by the same load instruction before.
+    if (!lsq->hermesEnabled() || load_inst->hermesIssued) {
+        return;
+    }
+
+    // skip a load split across two cache lines, since a Hermes request reads
+    // only one line
+    // skip software prefetches since they are not demand loads
+    if (request->isSplit() || load_inst->isDataPrefetch()) {
+        return;
+    }
+
+    const RequestPtr req = request->mainReq();
+
+    // uncacheable: usually MMIO, device registers, etc.
+    // strictly ordered: does not allow Hermes to do speculative reads
+    // not a memory address: Hermes is only for memory addresses
+    if (req->isUncacheable() || req->isStrictlyOrdered() ||
+        !cpu->system->isMemAddr(req->getPaddr())) {
+        return;
+    }
+
+    DPRINTF(LSQUnit, "Issuing Hermes request for inst [sn:%lli] addr %#x\n",
+            load_inst->seqNum, req->getPaddr());
+
+    load_inst->hermesIssued = true;
+    lsq->issueHermes(req->getPaddr());
+    ++stats.hermesIssued;
+}
+
 Fault
 LSQUnit::read(LSQRequest *request, ssize_t load_idx)
 {
@@ -1381,6 +1418,10 @@ LSQUnit::read(LSQRequest *request, ssize_t load_idx)
         cpu->schedule(wb, cpu->clockEdge(delay));
         return NoFault;
     }
+
+    // Hermes starts as soon as the physical address is known, so it doesn't
+    // wait to see whether a store can forward the data
+    tryIssueHermes(load_inst, request);
 
     // Check the SQ for any previous stores that might lead to forwarding
     auto store_it = load_inst->sqIt;

@@ -43,6 +43,7 @@
 #include "base/trace.hh"
 #include "debug/DRAM.hh"
 #include "debug/Drain.hh"
+#include "debug/HermesMem.hh"
 #include "debug/MemCtrl.hh"
 #include "debug/NVM.hh"
 #include "debug/QOS.hh"
@@ -421,6 +422,10 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
     panic_if(!(pkt->isRead() || pkt->isWrite()),
              "Should only see read and writes at memory controller\n");
 
+    // Hermes requests should bypass the caches and arrive on the Hermes port
+    panic_if(pkt->isHermes(), "Hermes request on the main port: %s\n",
+             pkt->print());
+
     // Calc avg gap between requests
     if (prevArrival != 0) {
         stats.totGap += curTick() - prevArrival;
@@ -498,11 +503,13 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
 void
 MemCtrl::recvHermesReq(PacketPtr pkt)
 {
-    DPRINTF(MemCtrl, "recvHermesReq: request %s addr %#x size %d\n",
+    DPRINTF(HermesMem, "recvHermesReq: request %s addr %#x size %d\n",
             pkt->cmdString(), pkt->getAddr(), pkt->getSize());
 
     panic_if(!pkt->isHermes(), "Only Hermes requests are expected on the "
              "Hermes port, got %s\n", pkt->print());
+
+    stats.hermesReqs++;
 
     panic_if(!(dram->getAddrRange().contains(pkt->getAddr())),
              "Can't handle address range for packet %s\n", pkt->print());
@@ -520,14 +527,18 @@ MemCtrl::recvHermesReq(PacketPtr pkt)
     qosSchedule( { &readQueue, &writeQueue }, burst_size, pkt);
 
     if (readQueueFull(pkt_count)) {
-        DPRINTF(MemCtrl, "Read queue full, dropping Hermes request\n");
+        DPRINTF(HermesMem, "Read queue full, dropping Hermes request to "
+                "addr %#x\n", pkt->getAddr());
+        stats.hermesDropFull++;
         pendingDelete.reset(pkt);
         return;
     }
 
     // a read of this burst is already in flight, so current Hermes read is useless.
     if (findInFlightRead(burstAlign(pkt->getAddr(), dram))) {
-        DPRINTF(MemCtrl, "Read in flight, dropping Hermes request\n");
+        DPRINTF(HermesMem, "Read in flight, dropping Hermes request to "
+                "addr %#x\n", pkt->getAddr());
+        stats.hermesDropInFlight++;
         pendingDelete.reset(pkt);
         return;
     }
@@ -539,6 +550,8 @@ MemCtrl::recvHermesReq(PacketPtr pkt)
             DPRINTF(MemCtrl, "Request scheduled immediately\n");
             schedule(nextReqEvent, curTick());
         }
+    } else {
+        stats.hermesServicedByWrQ++;
     }
 }
 
@@ -582,8 +595,13 @@ MemCtrl::mergeWithHermes(PacketPtr pkt)
         return false;
     }
 
-    DPRINTF(MemCtrl, "Read to addr %#x merged with Hermes request\n",
+    DPRINTF(HermesMem, "Read to addr %#x merged with Hermes request\n",
             pkt->getAddr());
+
+    // a Hermes entry is a single read burst, so it answers exactly one read
+    assert(mem_pkt->isRead() && !mem_pkt->burstHelper);
+
+    stats.hermesMerged++;
 
     // the DRAM access keeps its place, and now answers the regular read
     pendingDelete.reset(mem_pkt->pkt);
@@ -622,6 +640,13 @@ MemCtrl::processRespondEvent(MemInterface* mem_intr,
             mem_pkt->burstHelper = NULL;
         }
     } else {
+        // a Hermes packet still here was never taken over by a regular read
+        if (mem_pkt->pkt->isHermes()) {
+            DPRINTF(HermesMem, "Hermes read of addr %#x finished unused\n",
+                    mem_pkt->pkt->getAddr());
+            stats.hermesUnused++;
+        }
+
         // it is not a split packet
         accessAndRespond(mem_pkt->pkt, frontendLatency + backendLatency,
                          mem_intr);
@@ -1314,6 +1339,21 @@ MemCtrl::CtrlStats::CtrlStats(MemCtrl &_ctrl)
 
     ADD_STAT(neitherReadNorWriteReqs, statistics::units::Count::get(),
              "Number of requests that are neither read nor write"),
+
+    ADD_STAT(hermesReqs, statistics::units::Count::get(),
+             "Number of Hermes requests received"),
+    ADD_STAT(hermesMerged, statistics::units::Count::get(),
+             "Number of Hermes requests taken over by a regular read"),
+    ADD_STAT(hermesUnused, statistics::units::Count::get(),
+             "Number of Hermes requests that read DRAM with nobody waiting"),
+    ADD_STAT(hermesDropFull, statistics::units::Count::get(),
+             "Number of Hermes requests dropped because the read queue was "
+             "full"),
+    ADD_STAT(hermesDropInFlight, statistics::units::Count::get(),
+             "Number of Hermes requests dropped because the burst already "
+             "had a read in flight"),
+    ADD_STAT(hermesServicedByWrQ, statistics::units::Count::get(),
+             "Number of Hermes requests that hit the write queue"),
 
     ADD_STAT(avgRdQLen, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Tick>::get(),

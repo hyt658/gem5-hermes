@@ -78,6 +78,16 @@ class BaseO3CPU(BaseCPU):
 
     activity = Param.Unsigned(0, "Initial count")
 
+    enable_hermes = Param.Bool(
+        False, "Send a Hermes request for every eligible load"
+    )
+    hermes_issue_latency = Param.Cycles(
+        6, "Cycles for a Hermes request to reach the memory controller"
+    )
+    hermes_port = RequestPort(
+        "Port that sends Hermes requests directly to the memory controller"
+    )
+
     cacheStorePorts = Param.Unsigned(
         200, "Cache Ports. Constrains stores only."
     )

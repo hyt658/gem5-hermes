@@ -44,9 +44,11 @@
 
 #include <cassert>
 #include <cstdint>
+#include <deque>
 #include <list>
 #include <map>
 #include <queue>
+#include <utility>
 #include <vector>
 
 #include "arch/generic/mmu.hh"
@@ -58,6 +60,7 @@
 #include "cpu/utils.hh"
 #include "enums/SMTQueuePolicy.hh"
 #include "mem/port.hh"
+#include "sim/eventq.hh"
 #include "sim/sim_object.hh"
 
 namespace gem5
@@ -116,6 +119,20 @@ class LSQ
          * @return true since we have to snoop
          */
         virtual bool isSnooping() const { return true; }
+    };
+
+    /**
+     * Port that sends Hermes requests directly to the memory controller.
+     * Hermes requests are one-way, so it never gets a response or a retry.
+     */
+    class HermesPort : public RequestPort
+    {
+      public:
+        HermesPort(CPU *_cpu);
+
+      protected:
+        bool recvTimingResp(PacketPtr pkt) override;
+        void recvReqRetry() override;
     };
 
     /** Memory operation metadata.
@@ -891,6 +908,17 @@ class LSQ
 
     RequestPort &getDataPort() { return dcachePort; }
 
+    /** Should loads issue Hermes requests? */
+    bool hermesEnabled() const { return enableHermes; }
+
+    RequestPort &getHermesPort() { return hermesPort; }
+
+    /**
+     * Send a Hermes request for the cache line of a physical address. It
+     * reaches the memory controller after the Hermes issue latency.
+     */
+    void issueHermes(Addr paddr);
+
   protected:
     /** D-cache is blocked */
     bool _cacheBlocked;
@@ -956,6 +984,27 @@ class LSQ
 
     /** Number of Threads. */
     ThreadID numThreads;
+
+    const bool enableHermes;
+
+    const Cycles hermesIssueLatency;
+
+    /** 
+     * Assign Hermes requests a unique requestor ID so stats count them apart from
+     * regular reads.
+     */
+    const RequestorID hermesRequestorId;
+
+    HermesPort hermesPort;
+
+    /** Hermes requests and their send times, oldest first. */
+    std::deque<std::pair<Tick, PacketPtr>> hermesQueue;
+
+    /** Fires when the oldest queued request is due, and calls sendHermes(). */
+    EventFunctionWrapper hermesEvent;
+
+    /** Send the Hermes requests that are due. */
+    void sendHermes();
 };
 
 } // namespace o3

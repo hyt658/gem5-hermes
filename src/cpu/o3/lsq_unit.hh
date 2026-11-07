@@ -378,6 +378,9 @@ class LSQUnit
     /** Handles completing the send of a store to memory. */
     void storePostSend();
 
+    /** Issues a Hermes request for a load if it is eligible for one. */
+    void tryIssueHermes(const DynInstPtr &load_inst, LSQRequest *request);
+
   public:
     /** Attempts to send a packet to the cache.
      * Check if there are ports available. Return true if
@@ -534,6 +537,9 @@ class LSQUnit
 
         /** Number of times the LSQ is blocked due to the cache. */
         statistics::Scalar blockedByCache;
+
+        /** Number of Hermes requests issued by loads. */
+        statistics::Scalar hermesIssued;
 
         /** Distribution of cycle latency between the first time a load
          * is issued and its completion */

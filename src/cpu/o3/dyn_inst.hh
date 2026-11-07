@@ -346,6 +346,17 @@ class DynInst : public ExecContext, public RefCounted
     /** Pointer to the data for the memory access. */
     uint8_t *memData = nullptr;
 
+    /**
+     * A load can be executed more than once due to a replay caused by a
+     * partial store forward or a blocked L1. We don't want to issue a Hermes
+     * request for each execution, since the first one is usually still in
+     * flight and the retried load can still merge with it.
+     * 
+     * Add a flag in the DynInst can guarantee that each load instruction will
+     * only issue one Hermes request.
+     */
+    bool hermesIssued = false;
+
     /** Load queue index. */
     ssize_t lqIdx = -1;
     typename LSQUnit::LQIterator lqIt;

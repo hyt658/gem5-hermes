@@ -570,6 +570,21 @@ class CPU : public BaseCPU
         return iew.ldstQueue.getDataPort();
     }
 
+    /** 
+     * We only added Hermes port to the O3 CPU, its father BaseCPU doesn't know it.
+     * Therefore, we need to overrride `getPort` to return the Hermes port when requested
+     * instead of creating a new `getHermesPort` method.
+     */
+    Port &
+    getPort(const std::string &if_name, PortID idx=InvalidPortID) override
+    {
+        if (if_name == "hermes_port") {
+            return iew.ldstQueue.getHermesPort();
+        }
+
+        return BaseCPU::getPort(if_name, idx);
+    }
+
     struct CPUStats : public statistics::Group
     {
         CPUStats(CPU *cpu);

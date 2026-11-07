@@ -610,6 +610,13 @@ class MemCtrl : public qos::MemCtrl
         statistics::Scalar servicedByWrQ;
         statistics::Scalar mergedWrBursts;
         statistics::Scalar neitherReadNorWriteReqs;
+        // Every Hermes request ends in exactly one of the outcomes below
+        statistics::Scalar hermesReqs;
+        statistics::Scalar hermesMerged;
+        statistics::Scalar hermesUnused;
+        statistics::Scalar hermesDropFull;
+        statistics::Scalar hermesDropInFlight;
+        statistics::Scalar hermesServicedByWrQ;
         // Average queue lengths
         statistics::Average avgRdQLen;
         statistics::Average avgWrQLen;

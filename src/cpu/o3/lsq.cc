@@ -57,6 +57,7 @@
 #include "debug/LSQ.hh"
 #include "debug/Writeback.hh"
 #include "params/BaseO3CPU.hh"
+#include "sim/system.hh"
 
 namespace gem5
 {
@@ -67,6 +68,22 @@ namespace o3
 LSQ::DcachePort::DcachePort(LSQ *_lsq, CPU *_cpu) :
     RequestPort(_cpu->name() + ".dcache_port"), lsq(_lsq), cpu(_cpu)
 {}
+
+LSQ::HermesPort::HermesPort(CPU *_cpu) :
+    RequestPort(_cpu->name() + ".hermes_port")
+{}
+
+bool
+LSQ::HermesPort::recvTimingResp(PacketPtr pkt)
+{
+    panic("%s got a response to a Hermes request: %s\n", name(), pkt->print());
+}
+
+void
+LSQ::HermesPort::recvReqRetry()
+{
+    panic("%s got a retry, Hermes requests are never refused\n", name());
+}
 
 LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
     : cpu(cpu_ptr), iewStage(iew_ptr),
@@ -83,7 +100,13 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
       maxSQEntries(maxLSQAllocation(lsqPolicy, SQEntries, params.numThreads,
                   params.smtLSQThreshold)),
       dcachePort(this, cpu_ptr),
-      numThreads(params.numThreads)
+      numThreads(params.numThreads),
+      enableHermes(params.enable_hermes),
+      hermesIssueLatency(params.hermes_issue_latency),
+      hermesRequestorId(params.system->getRequestorId(cpu_ptr, "hermes")),
+      hermesPort(cpu_ptr),
+      hermesEvent([this]{ sendHermes(); },
+                  cpu_ptr->name() + ".lsq.hermesEvent")
 {
     assert(numThreads > 0 && numThreads <= MaxThreads);
 
@@ -154,6 +177,11 @@ LSQ::isDrained() const
 
     if (!sqEmpty()) {
         DPRINTF(Drain, "Not drained, SQ not empty.\n");
+        drained = false;
+    }
+
+    if (!hermesQueue.empty()) {
+        DPRINTF(Drain, "Not drained, Hermes requests not sent.\n");
         drained = false;
     }
 
@@ -1537,6 +1565,39 @@ LSQ::write(LSQRequest* request, uint8_t *data, ssize_t store_idx)
     ThreadID tid = cpu->contextToThread(request->req()->contextId());
 
     return thread.at(tid).write(request, data, store_idx);
+}
+
+void
+LSQ::issueHermes(Addr paddr)
+{
+    // the memory controller matches Hermes reads with regular reads by line
+    const unsigned line_size = cpu->cacheLineSize();
+    Request::Flags flags;
+    RequestPtr req = std::make_shared<Request>(
+        addrBlockAlign(paddr, line_size), line_size, flags, hermesRequestorId);
+
+    hermesQueue.emplace_back(cpu->clockEdge(hermesIssueLatency),
+                             new Packet(req, MemCmd::HermesReadReq));
+
+    if (!hermesEvent.scheduled())
+        cpu->schedule(hermesEvent, hermesQueue.front().first);
+}
+
+void
+LSQ::sendHermes()
+{
+    while (!hermesQueue.empty() && hermesQueue.front().first <= curTick()) {
+        panic_if(!hermesPort.sendTimingReq(hermesQueue.front().second),
+                 "%s: Hermes request was refused\n", name());
+        hermesQueue.pop_front();
+    }
+
+    if (!hermesQueue.empty()) {
+        cpu->schedule(hermesEvent, hermesQueue.front().first);
+    } else if (cpu->drainState() == DrainState::Draining) {
+        // the CPU may be idle with this queue as the last thing to drain
+        cpu->wakeCPU();
+    }
 }
 
 } // namespace o3
