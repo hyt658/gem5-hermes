@@ -539,7 +539,10 @@ class LSQUnit
         statistics::Scalar blockedByCache;
 
         /** Number of Hermes requests issued by loads. */
-        statistics::Scalar hermesIssued;
+        statistics::Scalar issuedHermes;
+
+        /** Number of squashed loads that had issued a Hermes request. */
+        statistics::Scalar squashedHermes;
 
         /** Distribution of cycle latency between the first time a load
          * is issued and its completion */

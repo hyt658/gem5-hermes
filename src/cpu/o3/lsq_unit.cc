@@ -270,8 +270,10 @@ LSQUnit::LSQUnitStats::LSQUnitStats(statistics::Group *parent)
       ADD_STAT(blockedByCache, statistics::units::Count::get(),
                "Number of times an access to memory failed due to the cache "
                "being blocked"),
-      ADD_STAT(hermesIssued, statistics::units::Count::get(),
+      ADD_STAT(issuedHermes, statistics::units::Count::get(),
                "Number of Hermes requests issued by loads"),
+      ADD_STAT(squashedHermes, statistics::units::Count::get(),
+               "Number of squashed loads that had issued a Hermes request"),
       ADD_STAT(loadToUse, "Distribution of cycle latency between the "
                 "first time a load is issued and its completion")
 {
@@ -955,6 +957,13 @@ LSQUnit::squash(const InstSeqNum &squashed_num)
             DPRINTF(HtmCpu, ">> htmStarts (%d) : htmStops-- (%d)\n",
               htmStarts, htmStops);
         }
+
+        // a Hermes request cannot be recalled, so it still reaches the
+        // memory controller and either goes unused or serves a later read
+        if (loadQueue.back().instruction()->hermesIssued) {
+            ++stats.squashedHermes;
+        }
+
         // Clear the smart pointer to make sure it is decremented.
         loadQueue.back().instruction()->setSquashed();
         loadQueue.back().clear();
@@ -1347,7 +1356,7 @@ LSQUnit::tryIssueHermes(const DynInstPtr &load_inst, LSQRequest *request)
 
     load_inst->hermesIssued = true;
     lsq->issueHermes(req->getPaddr());
-    ++stats.hermesIssued;
+    ++stats.issuedHermes;
 }
 
 Fault
