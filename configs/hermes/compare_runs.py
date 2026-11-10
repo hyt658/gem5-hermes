@@ -18,6 +18,12 @@ HERMES_UNUSED = CTRL + "hermesUnused"
 HERMES_DROP_FULL = CTRL + "hermesDropFull"
 HERMES_DROP_IN_FLIGHT = CTRL + "hermesDropInFlight"
 HERMES_WRQ = CTRL + "hermesServicedByWrQ"
+POPET = CPU + "popet."
+POPET_STATS = [
+    POPET + name
+    for name in ("predictions", "predictedOffchip", "truePos", "falsePos",
+                 "falseNeg", "trueNeg", "accuracy", "coverage")
+]
 
 SHOWN = [
     SIM_INSTS,
@@ -32,7 +38,7 @@ SHOWN = [
     HERMES_DROP_FULL,
     HERMES_DROP_IN_FLIGHT,
     HERMES_WRQ,
-]
+] + POPET_STATS
 
 
 def parse_args():

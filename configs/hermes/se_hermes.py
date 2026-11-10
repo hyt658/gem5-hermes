@@ -24,9 +24,27 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("binary")
     parser.add_argument(
+        "--options",
+        default="",
+        help="Command line arguments of the program, as one string",
+    )
+    parser.add_argument(
+        "--mem-size",
+        default="2GB",
+        help="Size of the simulated memory, large SPEC inputs need 8GB",
+    )
+    parser.add_argument(
         "--hermes",
         action="store_true",
-        help="Send a Hermes request for every eligible load",
+        help="Send Hermes requests, for every eligible load unless --popet "
+        "is also given",
+    )
+    parser.add_argument(
+        "--popet",
+        action="store_true",
+        help="Run the POPET predictor; with --hermes only loads predicted "
+        "to go off-chip send a Hermes request, without it POPET only "
+        "predicts and trains",
     )
     parser.add_argument(
         "--issue-latency",
@@ -106,7 +124,7 @@ def build_system(args):
     )
     # the atomic CPU needs atomic mode, and switching to O3 changes it to timing
     system.mem_mode = "atomic" if args.fast_forward else "timing"
-    system.mem_ranges = [AddrRange("2GB")]
+    system.mem_ranges = [AddrRange(args.mem_size)]
 
     # Core parameters from Table 4 of the Hermes paper
     system.cpu = X86O3CPU(
@@ -180,8 +198,13 @@ def build_system(args):
         system.cpu.hermes_issue_latency = args.issue_latency
         system.cpu.hermes_port = system.mem_ctrl.hermes_port
 
+    if args.popet:
+        system.cpu.popetEnable = True
+
     system.workload = SEWorkload.init_compatible(args.binary)
-    system.cpu.workload = Process(cmd=[args.binary], output="program.out")
+    system.cpu.workload = Process(
+        cmd=[args.binary] + args.options.split(), output="program.out"
+    )
     system.cpu.createThreads()
     if args.fast_forward:
         # both CPUs run the same thread, so they share its process and ISA state

@@ -1,0 +1,13 @@
+chase_popet_O exit=0 308s
+scan_base exit=0 361s
+scan_popet exit=0 362s
+chase_popet exit=0 486s
+chase_popet_P exit=0 502s
+chase_all_O exit=0 511s
+chase_base exit=0 540s
+scan_popet_O exit=0 272s
+mcf_all_O exit=0 1458s
+mcf_base exit=0 1489s
+mcf_popet_P exit=0 1410s
+mcf_popet_O exit=0 1529s
+ALL_DONE

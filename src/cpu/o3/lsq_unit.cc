@@ -340,6 +340,13 @@ LSQUnit::insertLoad(const DynInstPtr &load_inst)
     assert(load_inst->lqIdx > 0);
     load_inst->lqIt = loadQueue.getIterator(load_inst->lqIdx);
 
+    // POPET's load-PC history is updated in program order, like ChampSim's
+    // add_load_queue(); the prediction itself waits for the address.
+    if (lsq->popet) {
+        load_inst->popetLoadPCSig =
+            lsq->popet->recordLoadPC(load_inst->pcState().instAddr());
+    }
+
     // hardware transactional memory
     // transactional state and nesting depth must be tracked
     // in the in-order part of the core.
@@ -737,6 +744,11 @@ LSQUnit::commitLoad()
             && inst->lastWakeDependents != -1) {
         stats.loadToUse.sample(cpu->ticksToCycles(
                     inst->lastWakeDependents - inst->firstIssue));
+    }
+
+    // Train at commit so squashed wrong-path loads never train POPET.
+    if (lsq->popet && inst->popetPredicted) {
+        lsq->popet->train(inst);
     }
 
     loadQueue.front().clear();
@@ -1334,6 +1346,12 @@ LSQUnit::tryIssueHermes(const DynInstPtr &load_inst, LSQRequest *request)
         return;
     }
 
+    // with POPET, only loads predicted to go off-chip send a Hermes request;
+    // without it, every eligible load does (an upper bound on coverage)
+    if (lsq->popet && !load_inst->popetPredOffchip) {
+        return;
+    }
+
     // skip a load split across two cache lines, since a Hermes request reads
     // only one line
     // skip software prefetches since they are not demand loads
@@ -1426,6 +1444,14 @@ LSQUnit::read(LSQRequest *request, ssize_t load_idx)
         WritebackEvent *wb = new WritebackEvent(load_inst, main_pkt, this);
         cpu->schedule(wb, cpu->clockEdge(delay));
         return NoFault;
+    }
+
+    // POPET predicts once per load, before store-to-load forwarding (as in
+    // ChampSim, where every LQ entry gets a prediction).
+    if (lsq->popet && !load_inst->popetPredicted &&
+        !load_inst->isDataPrefetch() &&
+        !request->mainReq()->isUncacheable()) {
+        lsq->popet->predict(load_inst, request->mainReq()->getVaddr());
     }
 
     // Hermes starts as soon as the physical address is known, so it doesn't

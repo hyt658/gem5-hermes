@@ -470,6 +470,9 @@ class Request : public Extensible<Request>
     /** The cause for HTM transaction abort */
     HtmFailureFaultCause _htmAbortCause = HtmFailureFaultCause::INVALID;
 
+    /** Hermes: this request reached the memory controller (LLC miss). */
+    bool _offchip = false;
+
   public:
 
     /**
@@ -956,6 +959,13 @@ class Request : public Extensible<Request>
         assert(hasPC());
         return _pc;
     }
+
+    /**
+     * Hermes off-chip label. Caches forward a miss with the original
+     * request, so the memory controller can mark the load that caused it.
+     */
+    void setOffchip() { _offchip = true; }
+    bool isOffchip() const { return _offchip; }
 
     /**
      * Increment/Get the depth at which this request is responded to.

@@ -202,3 +202,21 @@ class BaseO3CPU(BaseCPU):
         TournamentBP(numThreads=Parent.numThreads), "Branch Predictor"
     )
     needsTSO = Param.Bool(False, "Enable TSO Memory model")
+
+    # Hermes POPET off-chip load predictor; defaults from the authors'
+    # config/ocp_hermes.ini.
+    popetEnable = Param.Bool(False, "Enable the POPET off-chip predictor")
+    popetActThreshold = Param.Int(-17, "POPET activation threshold")
+    popetPosTrainThreshold = Param.Int(
+        40, "Skip training a correct prediction above this sum"
+    )
+    popetNegTrainThreshold = Param.Int(
+        -35, "Skip training a correct prediction below this sum"
+    )
+    popetMaxWeight = Param.Int(15, "POPET maximum weight (5-bit)")
+    popetMinWeight = Param.Int(-16, "POPET minimum weight (5-bit)")
+    popetPageBufSets = Param.Unsigned(64, "POPET page buffer sets")
+    popetPageBufAssoc = Param.Unsigned(16, "POPET page buffer ways")
+    popetLastNLoadPCs = Param.Unsigned(
+        4, "Number of load PCs in the control-flow signature"
+    )

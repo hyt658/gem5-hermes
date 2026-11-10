@@ -1,0 +1,35 @@
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (16384 Mbytes) does not match the address range assigned (8192 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 23.0.0.1
+gem5 compiled Nov  9 2026 18:12:29
+gem5 started Nov  9 2026 18:21:07
+gem5 executing on ip-172-31-6-179.ec2.internal, pid 8075
+command line: /home/ec2-user/gem5/build/X86/gem5.opt -d /home/ec2-user/popet_runs/mcf_base /home/ec2-user/gem5/configs/hermes/se_hermes.py --mem-size=8GB --fast-forward=1000000000 --warmup=20000000 --max-insts=50000000 --options=inp.in /home/ec2-user/spec2017/benchspec/CPU/605.mcf_s/build/build_base_mytest-m64.0000/mcf_s
+
+info: Standard input is not a terminal, disabling listeners.
+src/sim/simulate.cc:194: info: Entering event queue @ 0.  Starting simulation...
+src/sim/syscall_emul.cc:74: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.hh:1014: warn: readlink() called on '/proc/self/exe' may yield unexpected results in various settings.
+      Returning '/home/ec2-user/spec2017/benchspec/CPU/605.mcf_s/build/build_base_mytest-m64.0000/mcf_s'
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/simulate.cc:194: info: Entering event queue @ 532710627250.  Starting simulation...
+src/sim/power_state.cc:105: warn: PowerState: Already in the requested power state, request ignored
+switching cpus
+src/sim/simulate.cc:194: info: Entering event queue @ 532710627500.  Starting simulation...
+src/sim/simulate.cc:194: info: Entering event queue @ 540419424500.  Starting simulation...
+Exiting @ tick 559716729500 because measurement done

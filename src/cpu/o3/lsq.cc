@@ -140,6 +140,10 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
         thread[tid].init(cpu, iew_ptr, params, this, tid);
         thread[tid].setDcachePort(&dcachePort);
     }
+
+    if (params.popetEnable) {
+        popet = std::make_unique<Popet>(cpu, params, cpu->name() + ".popet");
+    }
 }
 
 
@@ -1219,6 +1223,8 @@ LSQ::SingleDataRequest::recvTimingResp(PacketPtr pkt)
     assert(_numOutstandingPackets == 1);
     flags.set(Flag::Complete);
     assert(pkt == _packets.front());
+    if (isLoad() && pkt->req->isOffchip())
+        _inst->wentOffchip = true;
     _port.completeDataAccess(pkt);
     _hasStaleTranslation = false;
     return true;
@@ -1231,6 +1237,9 @@ LSQ::SplitDataRequest::recvTimingResp(PacketPtr pkt)
     while (pktIdx < _packets.size() && pkt != _packets[pktIdx])
         pktIdx++;
     assert(pktIdx < _packets.size());
+    // Either half of a split load reaching memory counts as off-chip.
+    if (isLoad() && pkt->req->isOffchip())
+        _inst->wentOffchip = true;
     numReceivedPackets++;
     if (numReceivedPackets == _packets.size()) {
         flags.set(Flag::Complete);

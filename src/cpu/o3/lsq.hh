@@ -47,6 +47,7 @@
 #include <deque>
 #include <list>
 #include <map>
+#include <memory>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -57,6 +58,7 @@
 #include "base/types.hh"
 #include "cpu/inst_seq.hh"
 #include "cpu/o3/dyn_inst_ptr.hh"
+#include "cpu/o3/popet.hh"
 #include "cpu/utils.hh"
 #include "enums/SMTQueuePolicy.hh"
 #include "mem/port.hh"
@@ -912,6 +914,9 @@ class LSQ
     bool hermesEnabled() const { return enableHermes; }
 
     RequestPort &getHermesPort() { return hermesPort; }
+
+    /** Hermes off-chip load predictor; nullptr when popetEnable is off. */
+    std::unique_ptr<Popet> popet;
 
     /**
      * Send a Hermes request for the cache line of a physical address. It

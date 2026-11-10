@@ -365,6 +365,18 @@ class DynInst : public ExecContext, public RefCounted
     ssize_t sqIdx = -1;
     typename LSQUnit::SQIterator sqIt;
 
+    /////////////////////// POPET (Hermes) //////////////////////
+    /** Last-N-load-PC signature, snapshotted in order at LQ insert. */
+    uint64_t popetLoadPCSig = 0;
+    /** POPET has made its (single) prediction for this load. */
+    bool popetPredicted = false;
+    bool popetPredOffchip = false;
+    /** Perceptron sum and weight indices saved for training. */
+    int16_t popetSum = 0;
+    uint16_t popetIdx[5] = {};
+    /** A request of this load was the one sent to the memory controller. */
+    bool wentOffchip = false;
+
 
     /////////////////////// TLB Miss //////////////////////
     /**

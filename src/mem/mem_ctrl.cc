@@ -426,6 +426,10 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
     panic_if(pkt->isHermes(), "Hermes request on the main port: %s\n",
              pkt->print());
 
+    // Hermes off-chip label for the load (if any) that caused this miss.
+    if (pkt->isRead())
+        pkt->req->setOffchip();
+
     // Calc avg gap between requests
     if (prevArrival != 0) {
         stats.totGap += curTick() - prevArrival;

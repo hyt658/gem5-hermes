@@ -1,0 +1,18 @@
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (16384 Mbytes) does not match the address range assigned (2048 Mbytes)
+src/arch/x86/linux/se_workload.cc:76: warn: Unknown operating system; assuming Linux.
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 23.0.0.1
+gem5 compiled Nov  9 2026 18:12:29
+gem5 started Nov  9 2026 18:15:07
+gem5 executing on ip-172-31-6-179.ec2.internal, pid 7752
+command line: /home/ec2-user/gem5/build/X86/gem5.opt -d /home/ec2-user/popet_runs/scan_base /home/ec2-user/gem5/configs/hermes/se_hermes.py /home/ec2-user/popet_runs/bin/scan_test
+
+info: Standard input is not a terminal, disabling listeners.
+src/sim/simulate.cc:194: info: Entering event queue @ 0.  Starting simulation...
+Exiting @ tick 35202031750 because exiting with last active thread context
