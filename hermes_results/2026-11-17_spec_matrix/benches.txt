@@ -1,0 +1,3 @@
+lbm|/home/ec2-user/spec2017/benchspec/CPU/519.lbm_r/run/run_base_refrate_mytest-m64.0000|/home/ec2-user/spec2017/benchspec/CPU/519.lbm_r/run/run_base_refrate_mytest-m64.0000/lbm_r_base.mytest-m64|3000 reference.dat 0 0|
+bwaves|/home/ec2-user/spec2017/benchspec/CPU/503.bwaves_r/run/run_base_refrate_mytest-m64.0000|/home/ec2-user/spec2017/benchspec/CPU/503.bwaves_r/run/run_base_refrate_mytest-m64.0000/bwaves_r_base.mytest-m64|bwaves_1|bwaves_1.in
+roms|/home/ec2-user/spec2017/benchspec/CPU/554.roms_r/run/run_base_refrate_mytest-m64.0000|/home/ec2-user/spec2017/benchspec/CPU/554.roms_r/run/run_base_refrate_mytest-m64.0000/roms_r_base.mytest-m64||ocean_benchmark2.in.x
