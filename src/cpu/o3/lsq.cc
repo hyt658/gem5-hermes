@@ -103,6 +103,7 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
       numThreads(params.numThreads),
       enableHermes(params.enable_hermes),
       hermesIssueLatency(params.hermes_issue_latency),
+      hermesDropSquashed(params.hermes_drop_squashed),
       hermesRequestorId(params.system->getRequestorId(cpu_ptr, "hermes")),
       hermesPort(cpu_ptr),
       hermesEvent([this]{ sendHermes(); },
@@ -1577,7 +1578,7 @@ LSQ::write(LSQRequest* request, uint8_t *data, ssize_t store_idx)
 }
 
 void
-LSQ::issueHermes(Addr paddr)
+LSQ::issueHermes(Addr paddr, InstSeqNum seq_num)
 {
     // the memory controller matches Hermes reads with regular reads by line
     const unsigned line_size = cpu->cacheLineSize();
@@ -1585,24 +1586,43 @@ LSQ::issueHermes(Addr paddr)
     RequestPtr req = std::make_shared<Request>(
         addrBlockAlign(paddr, line_size), line_size, flags, hermesRequestorId);
 
-    hermesQueue.emplace_back(cpu->clockEdge(hermesIssueLatency),
-                             new Packet(req, MemCmd::HermesReadReq));
+    hermesQueue.push_back({cpu->clockEdge(hermesIssueLatency),
+                           new Packet(req, MemCmd::HermesReadReq), seq_num});
 
     if (!hermesEvent.scheduled())
-        cpu->schedule(hermesEvent, hermesQueue.front().first);
+        cpu->schedule(hermesEvent, hermesQueue.front().when);
+}
+
+bool
+LSQ::cancelHermes(InstSeqNum seq_num)
+{
+    if (!hermesDropSquashed)
+        return false;
+
+    // squashed loads are young, so search from the back
+    for (auto it = hermesQueue.rbegin(); it != hermesQueue.rend(); ++it) {
+        if (it->seqNum == seq_num) {
+            delete it->pkt;
+            hermesQueue.erase(std::next(it).base());
+            // if the queue is now empty, hermesEvent still fires once and
+            // finds nothing to send, which also wakes a draining CPU
+            return true;
+        }
+    }
+    return false;
 }
 
 void
 LSQ::sendHermes()
 {
-    while (!hermesQueue.empty() && hermesQueue.front().first <= curTick()) {
-        panic_if(!hermesPort.sendTimingReq(hermesQueue.front().second),
+    while (!hermesQueue.empty() && hermesQueue.front().when <= curTick()) {
+        panic_if(!hermesPort.sendTimingReq(hermesQueue.front().pkt),
                  "%s: Hermes request was refused\n", name());
         hermesQueue.pop_front();
     }
 
     if (!hermesQueue.empty()) {
-        cpu->schedule(hermesEvent, hermesQueue.front().first);
+        cpu->schedule(hermesEvent, hermesQueue.front().when);
     } else if (cpu->drainState() == DrainState::Draining) {
         // the CPU may be idle with this queue as the last thing to drain
         cpu->wakeCPU();

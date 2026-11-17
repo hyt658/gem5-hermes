@@ -84,6 +84,11 @@ class BaseO3CPU(BaseCPU):
     hermes_issue_latency = Param.Cycles(
         6, "Cycles for a Hermes request to reach the memory controller"
     )
+    hermes_drop_squashed = Param.Bool(
+        False,
+        "Drop the queued Hermes request of a load that is squashed "
+        "before the request is sent",
+    )
     hermes_port = RequestPort(
         "Port that sends Hermes requests directly to the memory controller"
     )

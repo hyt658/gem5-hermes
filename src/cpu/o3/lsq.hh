@@ -45,6 +45,7 @@
 #include <cassert>
 #include <cstdint>
 #include <deque>
+#include <iterator>
 #include <list>
 #include <map>
 #include <memory>
@@ -922,7 +923,14 @@ class LSQ
      * Send a Hermes request for the cache line of a physical address. It
      * reaches the memory controller after the Hermes issue latency.
      */
-    void issueHermes(Addr paddr);
+    void issueHermes(Addr paddr, InstSeqNum seq_num);
+
+    /**
+     * Drop the Hermes request of a squashed load if it is still queued.
+     * Returns true if a request was dropped. Does nothing unless
+     * hermes_drop_squashed is set, since a sent request cannot be recalled.
+     */
+    bool cancelHermes(InstSeqNum seq_num);
 
   protected:
     /** D-cache is blocked */
@@ -994,6 +1002,8 @@ class LSQ
 
     const Cycles hermesIssueLatency;
 
+    const bool hermesDropSquashed;
+
     /** 
      * Assign Hermes requests a unique requestor ID so stats count them apart from
      * regular reads.
@@ -1002,8 +1012,16 @@ class LSQ
 
     HermesPort hermesPort;
 
-    /** Hermes requests and their send times, oldest first. */
-    std::deque<std::pair<Tick, PacketPtr>> hermesQueue;
+    /** A queued Hermes request, its send time, and the load that sent it. */
+    struct HermesEntry
+    {
+        Tick when;
+        PacketPtr pkt;
+        InstSeqNum seqNum;
+    };
+
+    /** Queued Hermes requests, oldest first. */
+    std::deque<HermesEntry> hermesQueue;
 
     /** Fires when the oldest queued request is due, and calls sendHermes(). */
     EventFunctionWrapper hermesEvent;

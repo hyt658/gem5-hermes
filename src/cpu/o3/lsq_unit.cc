@@ -274,6 +274,9 @@ LSQUnit::LSQUnitStats::LSQUnitStats(statistics::Group *parent)
                "Number of Hermes requests issued by loads"),
       ADD_STAT(squashedHermes, statistics::units::Count::get(),
                "Number of squashed loads that had issued a Hermes request"),
+      ADD_STAT(droppedSquashedHermes, statistics::units::Count::get(),
+               "Number of Hermes requests of squashed loads dropped before "
+               "being sent"),
       ADD_STAT(loadToUse, "Distribution of cycle latency between the "
                 "first time a load is issued and its completion")
 {
@@ -970,10 +973,14 @@ LSQUnit::squash(const InstSeqNum &squashed_num)
               htmStarts, htmStops);
         }
 
-        // a Hermes request cannot be recalled, so it still reaches the
-        // memory controller and either goes unused or serves a later read
+        // a sent Hermes request cannot be recalled, so it still reaches the
+        // memory controller and either goes unused or serves a later read;
+        // with hermes_drop_squashed, a request still in the queue is dropped
         if (loadQueue.back().instruction()->hermesIssued) {
             ++stats.squashedHermes;
+            if (lsq->cancelHermes(loadQueue.back().instruction()->seqNum)) {
+                ++stats.droppedSquashedHermes;
+            }
         }
 
         // Clear the smart pointer to make sure it is decremented.
@@ -1373,7 +1380,7 @@ LSQUnit::tryIssueHermes(const DynInstPtr &load_inst, LSQRequest *request)
             load_inst->seqNum, req->getPaddr());
 
     load_inst->hermesIssued = true;
-    lsq->issueHermes(req->getPaddr());
+    lsq->issueHermes(req->getPaddr(), load_inst->seqNum);
     ++stats.issuedHermes;
 }
 

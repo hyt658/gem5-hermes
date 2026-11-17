@@ -544,6 +544,10 @@ class LSQUnit
         /** Number of squashed loads that had issued a Hermes request. */
         statistics::Scalar squashedHermes;
 
+        /** Number of Hermes requests of squashed loads dropped before
+         * being sent. */
+        statistics::Scalar droppedSquashedHermes;
+
         /** Distribution of cycle latency between the first time a load
          * is issued and its completion */
         statistics::Distribution loadToUse;

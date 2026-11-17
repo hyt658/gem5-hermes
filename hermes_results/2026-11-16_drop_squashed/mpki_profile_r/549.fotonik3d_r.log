@@ -1,0 +1,77 @@
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (16384 Mbytes) does not match the address range assigned (8192 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 23.0.0.1
+gem5 compiled Nov 17 2026 02:42:34
+gem5 started Nov 17 2026 03:11:41
+gem5 executing on ip-172-31-6-179.ec2.internal, pid 11287
+command line: /home/ec2-user/gem5/build/X86/gem5.opt -d /home/ec2-user/hermes_work/out/profile_r/549.fotonik3d_r /home/ec2-user/hermes_work/configs/hermes_se.py --cmd=/home/ec2-user/spec2017/benchspec/CPU/549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/fotonik3d_r_base.mytest-m64 --options= --input= --mem-size=8GB --measure=3000000000 --profile-interval=500000000
+
+info: Standard input is not a terminal, disabling listeners.
+src/sim/simulate.cc:194: info: Entering event queue @ 0.  Starting simulation...
+[fast-forward done] tick=250 cause='fast-forward done'
+src/sim/simulate.cc:194: info: Entering event queue @ 250.  Starting simulation...
+src/sim/syscall_emul.cc:74: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.hh:1014: warn: readlink() called on '/proc/self/exe' may yield unexpected results in various settings.
+      Returning '/home/ec2-user/spec2017/benchspec/CPU/549.fotonik3d_r/run/run_base_refrate_mytest-m64.0000/fotonik3d_r_base.mytest-m64'
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:85: warn: ignoring syscall rt_sigaction(...)
+      (further warnings will be suppressed)
+ MPI_COMM_SIZE: COMM =            0
+ MPI_COMM_RANK: COMM =            0
+ ================================================================
+ Using 64-bit precision
+ -----------------------------------------------------
+ Master reads the input file yee.dat:
+
+ (px,py,pz) == dims(1:3) =            1           1           1
+ nx_global, ny_global, nz_global =          120         470         120
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ dx, dy, dz =    4.9999999999999998E-008   4.9999999999999998E-008   4.9999999999999998E-008
+ nts =         1909
+ out =            0
+ k0 =    0.0000000000000000        1.0000000000000000        0.0000000000000000     
+ Epol =    1.0000000000000000        0.0000000000000000        1.0000000000000000     
+ X0 =    0.0000000000000000        1.0000000000000000        0.0000000000000000     
+ pl =    10.000000000000000     
+ pulse =           -2
+ number_of_runs =            1
+ ds =            1
+ stride =          100
+ comtype =            8
+ CFL =   0.86602540380000004     
+ PEC =            0
+ OBC =            8
+ number_of_PML_cells =            8
+ OBJ =            1
+ POWER =            2
+ Number of Probes =             0
+
+ -----------------------------------------------------
+ *******PLANE SOURCE************************
+ index (y,global):          10
+ index (y,local):          10
+ Plane_Source_block_index =            0
+ Filename:TEwaveguide.m
+ Source_order_of_comp: trains_of_z_values
+ *******************************************
+ Global temporary arrays for iep[xyz] allocated on master
+ size (Mbytes) of each of the three arrays is           25
+[interval done] tick=287542698000 cause='interval done'
+src/sim/simulate.cc:194: info: Entering event queue @ 287542698000.  Starting simulation...
+[interval done] tick=575339467250 cause='interval done'
+src/sim/simulate.cc:194: info: Entering event queue @ 575339467250.  Starting simulation...
+[interval done] tick=863136727250 cause='interval done'
+src/sim/simulate.cc:194: info: Entering event queue @ 863136727250.  Starting simulation...
+[interval done] tick=1150933509250 cause='interval done'
+src/sim/simulate.cc:194: info: Entering event queue @ 1150933509250.  Starting simulation...
+[interval done] tick=1438730769500 cause='interval done'
+src/sim/simulate.cc:194: info: Entering event queue @ 1438730769500.  Starting simulation...
+[interval done] tick=1726527537500 cause='interval done'

@@ -1,0 +1,8 @@
+squash_O exit=0 561s
+store_O_drop exit=0 654s
+squash_O_drop exit=0 662s
+chase_popet_O_regress exit=0 772s
+mcf_popet_O_lat0 exit=0 2466s
+mcf_popet_P_drop exit=0 2843s
+mcf_popet_O_drop exit=0 2918s
+ALL_DONE

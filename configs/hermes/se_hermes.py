@@ -29,6 +29,11 @@ def parse_args():
         help="Command line arguments of the program, as one string",
     )
     parser.add_argument(
+        "--input",
+        default="",
+        help="File given to the program as its standard input",
+    )
+    parser.add_argument(
         "--mem-size",
         default="2GB",
         help="Size of the simulated memory, large SPEC inputs need 8GB",
@@ -45,6 +50,12 @@ def parse_args():
         help="Run the POPET predictor; with --hermes only loads predicted "
         "to go off-chip send a Hermes request, without it POPET only "
         "predicts and trains",
+    )
+    parser.add_argument(
+        "--drop-squashed",
+        action="store_true",
+        help="Drop the queued Hermes request of a load that is squashed "
+        "before the request is sent",
     )
     parser.add_argument(
         "--issue-latency",
@@ -196,15 +207,19 @@ def build_system(args):
     if args.hermes:
         system.cpu.enable_hermes = True
         system.cpu.hermes_issue_latency = args.issue_latency
+        system.cpu.hermes_drop_squashed = args.drop_squashed
         system.cpu.hermes_port = system.mem_ctrl.hermes_port
 
     if args.popet:
         system.cpu.popetEnable = True
 
     system.workload = SEWorkload.init_compatible(args.binary)
-    system.cpu.workload = Process(
+    process = Process(
         cmd=[args.binary] + args.options.split(), output="program.out"
     )
+    if args.input:
+        process.input = args.input
+    system.cpu.workload = process
     system.cpu.createThreads()
     if args.fast_forward:
         # both CPUs run the same thread, so they share its process and ISA state

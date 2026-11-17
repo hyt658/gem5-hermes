@@ -1,0 +1,44 @@
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/mem/dram_interface.cc:690: warn: DRAM device capacity (16384 Mbytes) does not match the address range assigned (8192 Mbytes)
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 23.0.0.1
+gem5 compiled Nov 17 2026 02:42:34
+gem5 started Nov 17 2026 03:11:42
+gem5 executing on ip-172-31-6-179.ec2.internal, pid 11290
+command line: /home/ec2-user/gem5/build/X86/gem5.opt -d /home/ec2-user/hermes_work/out/profile_r/503.bwaves_r /home/ec2-user/hermes_work/configs/hermes_se.py --cmd=/home/ec2-user/spec2017/benchspec/CPU/503.bwaves_r/run/run_base_refrate_mytest-m64.0000/bwaves_r_base.mytest-m64 --options=bwaves_1 --input=bwaves_1.in --mem-size=8GB --measure=3000000000 --profile-interval=500000000
+
+info: Standard input is not a terminal, disabling listeners.
+src/sim/simulate.cc:194: info: Entering event queue @ 0.  Starting simulation...
+[fast-forward done] tick=250 cause='fast-forward done'
+src/sim/simulate.cc:194: info: Entering event queue @ 250.  Starting simulation...
+src/sim/syscall_emul.cc:74: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.hh:1014: warn: readlink() called on '/proc/self/exe' may yield unexpected results in various settings.
+      Returning '/home/ec2-user/spec2017/benchspec/CPU/503.bwaves_r/run/run_base_refrate_mytest-m64.0000/bwaves_r_base.mytest-m64'
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:85: warn: ignoring syscall rt_sigaction(...)
+      (further warnings will be suppressed)
+ BI-CGSTAB & symmetric difference scheme 
+ 3D  Laminar shock wave propagation
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+ Re:   100000.000000    Pr:        0.720000
+ grid size is:     63    63    64
+ CFL:  2.000   nuim:  0.100  nuex2:  0.100 nuex4:  0.050
+ Implicit scheme is working
+ Cubic initial configuration
+ Number of Time Steps:     80
+
+[interval done] tick=312131038250 cause='interval done'
+src/sim/simulate.cc:194: info: Entering event queue @ 312131038250.  Starting simulation...
+[interval done] tick=564989222750 cause='interval done'
+src/sim/simulate.cc:194: info: Entering event queue @ 564989222750.  Starting simulation...
+[interval done] tick=823800859250 cause='interval done'
+src/sim/simulate.cc:194: info: Entering event queue @ 823800859250.  Starting simulation...
+ Time step:      1  dt:    0.77222822737E-03
+    0.24312144567E-01    0.10000000000E-02
