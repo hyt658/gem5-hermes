@@ -240,6 +240,9 @@ MemCmd::commandInfo[] =
     /* HermesReadReq - Speculative read sent by the core directly to the
      * memory controller. It never carries data back to the requestor. */
     { {IsRead, IsRequest}, InvalidCmd, "HermesReadReq" },
+    /* HermesCancelReq - Sent by the core when the load of a Hermes read is
+     * squashed. It carries no data and gets no response. */
+    { {IsRequest}, InvalidCmd, "HermesCancelReq" },
 };
 
 AddrRange

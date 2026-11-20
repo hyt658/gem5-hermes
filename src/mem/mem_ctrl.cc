@@ -74,6 +74,7 @@ MemCtrl::MemCtrl(const MemCtrlParams &p) :
     writeLowThreshold(writeBufferSize * p.write_low_thresh_perc / 100.0),
     minWritesPerSwitch(p.min_writes_per_switch),
     minReadsPerSwitch(p.min_reads_per_switch),
+    hermesMaxReadQueue(p.hermes_max_read_queue),
     memSchedPolicy(p.mem_sched_policy),
     frontendLatency(p.static_frontend_latency),
     backendLatency(p.static_backend_latency),
@@ -538,6 +539,16 @@ MemCtrl::recvHermesReq(PacketPtr pkt)
         return;
     }
 
+    // with a long read queue a Hermes read only waits in line and delays the
+    // regular reads behind it
+    if (hermesMaxReadQueue > 0 && totalReadQueueSize >= hermesMaxReadQueue) {
+        DPRINTF(HermesMem, "Read queue busy, dropping Hermes request to "
+                "addr %#x\n", pkt->getAddr());
+        stats.hermesDropThrottle++;
+        pendingDelete.reset(pkt);
+        return;
+    }
+
     // a read of this burst is already in flight, so current Hermes read is useless.
     if (findInFlightRead(burstAlign(pkt->getAddr(), dram))) {
         DPRINTF(HermesMem, "Read in flight, dropping Hermes request to "
@@ -557,6 +568,46 @@ MemCtrl::recvHermesReq(PacketPtr pkt)
     } else {
         stats.hermesServicedByWrQ++;
     }
+}
+
+void
+MemCtrl::cancelHermesReq(PacketPtr pkt)
+{
+    stats.hermesCancelReqs++;
+    Addr burst_addr = burstAlign(pkt->getAddr(), dram);
+
+    for (auto& queue : readQueue) {
+        for (auto it = queue.begin(); it != queue.end(); ++it) {
+            MemPacket* mem_pkt = *it;
+            if (burstAlign(mem_pkt->addr, dram) != burst_addr) {
+                continue;
+            }
+
+            // once a regular read has taken it over, the read must stay
+            if (!mem_pkt->pkt->isHermes()) {
+                pendingDelete.reset(pkt);
+                return;
+            }
+
+            DPRINTF(HermesMem, "Cancelling Hermes read of addr %#x\n",
+                    mem_pkt->addr);
+            queue.erase(it);
+
+            // undo what addToReadQueue() counted for this burst
+            logResponse(MemCtrl::READ, mem_pkt->requestorId(),
+                        mem_pkt->qosValue(), mem_pkt->getAddr(), 1, 0);
+            dram->readQueueSize--;
+            dram->cancelRead(mem_pkt->rank);
+            stats.hermesCancelled++;
+            delete mem_pkt->pkt;
+            delete mem_pkt;
+            pendingDelete.reset(pkt);
+            return;
+        }
+    }
+
+    // already issued to DRAM, or never queued
+    pendingDelete.reset(pkt);
 }
 
 MemPacket*
@@ -1356,8 +1407,16 @@ MemCtrl::CtrlStats::CtrlStats(MemCtrl &_ctrl)
     ADD_STAT(hermesDropInFlight, statistics::units::Count::get(),
              "Number of Hermes requests dropped because the burst already "
              "had a read in flight"),
+    ADD_STAT(hermesDropThrottle, statistics::units::Count::get(),
+             "Number of Hermes requests dropped because the read queue was "
+             "longer than hermes_max_read_queue"),
     ADD_STAT(hermesServicedByWrQ, statistics::units::Count::get(),
              "Number of Hermes requests that hit the write queue"),
+    ADD_STAT(hermesCancelled, statistics::units::Count::get(),
+             "Number of Hermes requests dropped from the read queue because "
+             "their load was squashed"),
+    ADD_STAT(hermesCancelReqs, statistics::units::Count::get(),
+             "Number of Hermes cancels received"),
 
     ADD_STAT(avgRdQLen, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Tick>::get(),
@@ -1722,7 +1781,11 @@ MemCtrl::HermesPort::recvTimingReq(PacketPtr pkt)
 {
     // always accept since recvHermesReq() either queues the request or drops it
     // returning false would need a retry, which this port never sends
-    ctrl.recvHermesReq(pkt);
+    if (pkt->isHermesCancel()) {
+        ctrl.cancelHermesReq(pkt);
+    } else {
+        ctrl.recvHermesReq(pkt);
+    }
     return true;
 }
 

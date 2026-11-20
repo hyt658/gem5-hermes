@@ -928,6 +928,13 @@ void DRAMInterface::setupRank(const uint8_t rank, const bool is_read)
 }
 
 void
+DRAMInterface::cancelRead(const uint8_t rank)
+{
+    assert(ranks[rank]->readEntries > 0);
+    --ranks[rank]->readEntries;
+}
+
+void
 DRAMInterface::respondEvent(uint8_t rank)
 {
     Rank& rank_ref = *ranks[rank];

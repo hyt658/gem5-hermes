@@ -80,6 +80,12 @@ class MemCtrl(QoSMemCtrl):
     # queue is empty
     write_low_thresh_perc = Param.Percent(50, "Threshold to start writes")
 
+    # Hermes requests only help while the read queue is short; past this
+    # many queued reads they are dropped (0 turns the limit off)
+    hermes_max_read_queue = Param.Unsigned(
+        0, "Drop Hermes requests when this many reads are queued"
+    )
+
     # minimum write bursts to schedule before switching back to reads
     min_writes_per_switch = Param.Unsigned(
         16, "Minimum write bursts before switching to reads"

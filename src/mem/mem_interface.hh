@@ -246,6 +246,15 @@ class MemInterface : public AbstractMemory
     virtual void setupRank(const uint8_t rank, const bool is_read) = 0;
 
     /**
+     * Undo setupRank() for a read that leaves the read queue without being
+     * issued, such as a cancelled Hermes read.
+     *
+     * It does nothing by default, so other interfaces such as NVM build
+     * without change. Our Hermes runs only use DRAM, which overrides it.
+     */
+    virtual void cancelRead(const uint8_t rank) { }
+
+    /**
      * Check drain state of interface
      *
      * @return true if all ranks are drained and idle

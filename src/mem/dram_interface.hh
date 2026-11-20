@@ -785,6 +785,8 @@ class DRAMInterface : public MemInterface
      */
     void respondEvent(uint8_t rank) override;
 
+    void cancelRead(const uint8_t rank) override;
+
     /**
      * Check the refresh state to determine if refresh needs
      * to be kicked back into action after a read response

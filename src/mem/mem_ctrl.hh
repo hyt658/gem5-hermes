@@ -552,6 +552,7 @@ class MemCtrl : public qos::MemCtrl
     uint32_t writeLowThreshold;
     const uint32_t minWritesPerSwitch;
     const uint32_t minReadsPerSwitch;
+    const uint32_t hermesMaxReadQueue;
 
     /**
      * Memory controller configuration initialized based on parameter
@@ -616,7 +617,11 @@ class MemCtrl : public qos::MemCtrl
         statistics::Scalar hermesUnused;
         statistics::Scalar hermesDropFull;
         statistics::Scalar hermesDropInFlight;
+        statistics::Scalar hermesDropThrottle;
         statistics::Scalar hermesServicedByWrQ;
+        statistics::Scalar hermesCancelled;
+        // cancels received, including ones that found nothing to drop
+        statistics::Scalar hermesCancelReqs;
         // Average queue lengths
         statistics::Average avgRdQLen;
         statistics::Average avgWrQLen;
@@ -833,6 +838,10 @@ class MemCtrl : public qos::MemCtrl
     // Accept a Hermes request from the Hermes port. If the read queue is full
     // or the burst already has a read in flight, the request is dropped.
     void recvHermesReq(PacketPtr pkt);
+
+    // Drop the Hermes read of this burst if it is still in the read queue
+    // and no regular read has taken it over.
+    void cancelHermesReq(PacketPtr pkt);
 
     // Find an unfinished read of this burst, whether it is still in the read
     // queue or already waiting for its data in the response queue.
