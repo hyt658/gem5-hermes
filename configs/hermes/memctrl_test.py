@@ -20,13 +20,17 @@ HERMES_MERGED = CTRL + "hermesMerged"
 HERMES_UNUSED = CTRL + "hermesUnused"
 HERMES_DROP_FULL = CTRL + "hermesDropFull"
 HERMES_DROP_IN_FLIGHT = CTRL + "hermesDropInFlight"
+HERMES_DROP_THROTTLE = CTRL + "hermesDropThrottle"
 HERMES_WRQ = CTRL + "hermesServicedByWrQ"
+HERMES_CANCELLED = CTRL + "hermesCancelled"
 HERMES_OUTCOMES = [
     HERMES_MERGED,
     HERMES_UNUSED,
     HERMES_DROP_FULL,
     HERMES_DROP_IN_FLIGHT,
+    HERMES_DROP_THROTTLE,
     HERMES_WRQ,
+    HERMES_CANCELLED,
 ]
 REGULAR_SENT = "system.tester.regularSent"
 RESPONSES = "system.tester.regularResponses"
