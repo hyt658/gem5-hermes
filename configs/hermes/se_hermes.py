@@ -10,6 +10,42 @@ PREFETCHERS = {
     "spp": SignaturePathPrefetcher,
 }
 
+
+class DDR4_3200_8x8(DDR4_2400_8x8):
+    tCK = "0.625ns"
+    tBURST = "2.5ns"
+    tRCD = "12.5ns"
+    tCL = "12.5ns"
+    tRP = "12.5ns"
+    tRRD = "2.5ns"
+    tRTW = "1.25ns"
+    tCS = "1.25ns"
+
+
+class DDR4_6400_8x8(DDR4_3200_8x8):
+    tCK = "0.3125ns"
+    tBURST = "1.25ns"
+    tCCD_L = "2.5ns"
+    tRRD = "1.25ns"
+    tRRD_L = "2.45ns"
+    tXAW = "10.5ns"
+    tRTW = "0.625ns"
+    tCS = "0.625ns"
+
+
+class DDR4_3200_8x8_1R8B(DDR4_3200_8x8):
+    ranks_per_channel = 1
+    banks_per_rank = 8
+    bank_groups_per_rank = 2
+
+
+DRAMS = {
+    "ddr4_2400": DDR4_2400_8x8,
+    "ddr4_3200": DDR4_3200_8x8,
+    "ddr4_3200_1r8b": DDR4_3200_8x8_1R8B,
+    "ddr4_6400": DDR4_6400_8x8,
+}
+
 # the atomic CPU only runs for a few hundred instructions in each switch
 ATOMIC_TICKS = 100 * 1000
 
@@ -58,11 +94,37 @@ def parse_args():
         "before the request is sent",
     )
     parser.add_argument(
+        "--popet-threshold",
+        type=int,
+        help="POPET activation threshold, a load (or store) whose sum is at "
+        "least this goes off-chip; the default is the authors' -17",
+    )
+    parser.add_argument(
+        "--hermes-max-rdq",
+        type=int,
+        default=0,
+        metavar="N",
+        help="The memory controller drops Hermes requests while N or more "
+        "reads are queued (0 = never)",
+    )
+    parser.add_argument(
+        "--no-tso",
+        action="store_true",
+        help="Let several stores write to the cache at once instead of one at "
+        "a time, closer to the ChampSim core of the paper",
+    )
+    parser.add_argument(
         "--issue-latency",
         type=int,
         default=6,
         help="Hermes issue latency in cycles, 6 for Hermes-O and 18 for "
         "Hermes-P",
+    )
+    parser.add_argument(
+        "--dram",
+        choices=DRAMS.keys(),
+        default="ddr4_2400",
+        help="DRAM of the single memory channel",
     )
     parser.add_argument(
         "--prefetcher",
@@ -201,8 +263,10 @@ def build_system(args):
     system.system_port = system.membus.cpu_side_ports
 
     system.mem_ctrl = MemCtrl()
-    system.mem_ctrl.dram = DDR4_2400_8x8(range=system.mem_ranges[0])
+    system.mem_ctrl.dram = DRAMS[args.dram](range=system.mem_ranges[0])
     system.mem_ctrl.port = system.membus.mem_side_ports
+    if args.hermes_max_rdq:
+        system.mem_ctrl.hermes_max_read_queue = args.hermes_max_rdq
 
     if args.hermes:
         system.cpu.enable_hermes = True
@@ -212,6 +276,10 @@ def build_system(args):
 
     if args.popet:
         system.cpu.popetEnable = True
+    if args.popet_threshold is not None:
+        system.cpu.popetActThreshold = args.popet_threshold
+    if args.no_tso:
+        system.cpu.needsTSO = False
 
     system.workload = SEWorkload.init_compatible(args.binary)
     process = Process(
