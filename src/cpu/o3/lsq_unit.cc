@@ -277,6 +277,11 @@ LSQUnit::LSQUnitStats::LSQUnitStats(statistics::Group *parent)
       ADD_STAT(droppedSquashedHermes, statistics::units::Count::get(),
                "Number of Hermes requests of squashed loads dropped before "
                "being sent"),
+      ADD_STAT(issuedStoreHermes, statistics::units::Count::get(),
+               "Number of Hermes requests issued by stores"),
+      ADD_STAT(cancelSentHermes, statistics::units::Count::get(),
+               "Number of cancels sent for Hermes requests of squashed "
+               "loads"),
       ADD_STAT(loadToUse, "Distribution of cycle latency between the "
                 "first time a load is issued and its completion")
 {
@@ -922,6 +927,10 @@ LSQUnit::writebackStores()
             storeWBIt++;
             continue;
         }
+        // the store is committed, so a Hermes request for its write miss is
+        // never on the wrong path
+        tryIssueStoreHermes(inst, request);
+
         /* Send to cache */
         request->sendPacketToCache();
 
@@ -980,6 +989,11 @@ LSQUnit::squash(const InstSeqNum &squashed_num)
             ++stats.squashedHermes;
             if (lsq->cancelHermes(loadQueue.back().instruction()->seqNum)) {
                 ++stats.droppedSquashedHermes;
+            } else if (lsq->hermesCancelEnabled()) {
+                // already sent: ask the memory controller to drop it
+                lsq->cancelSentHermes(
+                    loadQueue.back().instruction()->physEffAddr);
+                ++stats.cancelSentHermes;
             }
         }
 
@@ -1178,6 +1192,12 @@ LSQUnit::completeStore(typename StoreQueue::iterator store_idx)
     /* We 'need' a copy here because we may clear the entry from the
      * store queue. */
     DynInstPtr store_inst = store_idx->instruction();
+
+    // the write miss has finished by now, so the off-chip label is known
+    if (lsq->storePopet && store_inst->popetPredicted) {
+        lsq->storePopet->train(store_inst);
+    }
+
     if (store_idx == storeQueue.begin()) {
         do {
             storeQueue.front().clear();
@@ -1382,6 +1402,40 @@ LSQUnit::tryIssueHermes(const DynInstPtr &load_inst, LSQRequest *request)
     load_inst->hermesIssued = true;
     lsq->issueHermes(req->getPaddr(), load_inst->seqNum);
     ++stats.issuedHermes;
+}
+
+void
+LSQUnit::tryIssueStoreHermes(const DynInstPtr &store_inst,
+                             LSQRequest *request)
+{
+    if (!lsq->hermesStoresEnabled() || store_inst->hermesIssued ||
+        request->isSplit()) {
+        return;
+    }
+
+    const RequestPtr req = request->mainReq();
+    if (req->isUncacheable() || req->isStrictlyOrdered() || req->isLLSC() ||
+        req->isLockedRMW() || req->isCacheMaintenance() ||
+        !cpu->system->isMemAddr(req->getPaddr())) {
+        return;
+    }
+
+    // with POPET, the store POPET decides; without it every store sends one
+    if (lsq->storePopet) {
+        if (!store_inst->popetPredicted) {
+            lsq->storePopet->predict(store_inst, req->getVaddr());
+        }
+        if (!store_inst->popetPredOffchip) {
+            return;
+        }
+    }
+
+    DPRINTF(LSQUnit, "Issuing store Hermes request for [sn:%lli] addr %#x\n",
+            store_inst->seqNum, req->getPaddr());
+
+    store_inst->hermesIssued = true;
+    lsq->issueHermes(req->getPaddr(), store_inst->seqNum);
+    ++stats.issuedStoreHermes;
 }
 
 Fault

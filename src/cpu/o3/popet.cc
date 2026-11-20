@@ -68,7 +68,7 @@ fnv1a(uint64_t key)
 } // anonymous namespace
 
 Popet::Popet(statistics::Group *parent, const BaseO3CPUParams &params,
-             const std::string &name)
+             const std::string &name, const char *stats_group)
     : _name(name),
       actThreshold(params.popetActThreshold),
       posTrainThreshold(params.popetPosTrainThreshold),
@@ -79,7 +79,7 @@ Popet::Popet(statistics::Group *parent, const BaseO3CPUParams &params,
       pageBufAssoc(params.popetPageBufAssoc),
       lastNLoadPCs(params.popetLastNLoadPCs),
       pageBuffer(params.popetPageBufSets),
-      stats(parent)
+      stats(parent, stats_group)
 {
     for (int f = 0; f < NumFeatures; f++) {
         weights[f].assign(WeightTableSize[f], 0);
@@ -204,8 +204,8 @@ Popet::train(const DynInstPtr &inst)
             pred, actual);
 }
 
-Popet::PopetStats::PopetStats(statistics::Group *parent)
-    : statistics::Group(parent, "popet"),
+Popet::PopetStats::PopetStats(statistics::Group *parent, const char *group)
+    : statistics::Group(parent, group),
       ADD_STAT(predictions, statistics::units::Count::get(),
                "Number of loads POPET made a prediction for"),
       ADD_STAT(predictedOffchip, statistics::units::Count::get(),

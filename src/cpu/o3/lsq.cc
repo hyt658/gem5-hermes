@@ -104,6 +104,8 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
       enableHermes(params.enable_hermes),
       hermesIssueLatency(params.hermes_issue_latency),
       hermesDropSquashed(params.hermes_drop_squashed),
+      hermesStores(params.hermes_stores),
+      hermesCancelSquashed(params.hermes_cancel_squashed),
       hermesRequestorId(params.system->getRequestorId(cpu_ptr, "hermes")),
       hermesPort(cpu_ptr),
       hermesEvent([this]{ sendHermes(); },
@@ -144,6 +146,10 @@ LSQ::LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params)
 
     if (params.popetEnable) {
         popet = std::make_unique<Popet>(cpu, params, cpu->name() + ".popet");
+        if (hermesStoresEnabled()) {
+            storePopet = std::make_unique<Popet>(
+                cpu, params, cpu->name() + ".storePopet", "storePopet");
+        }
     }
 }
 
@@ -1224,7 +1230,8 @@ LSQ::SingleDataRequest::recvTimingResp(PacketPtr pkt)
     assert(_numOutstandingPackets == 1);
     flags.set(Flag::Complete);
     assert(pkt == _packets.front());
-    if (isLoad() && pkt->req->isOffchip())
+    // a store's write miss reads the line too, so it gets the label as well
+    if (pkt->req->isOffchip())
         _inst->wentOffchip = true;
     _port.completeDataAccess(pkt);
     _hasStaleTranslation = false;
@@ -1238,8 +1245,8 @@ LSQ::SplitDataRequest::recvTimingResp(PacketPtr pkt)
     while (pktIdx < _packets.size() && pkt != _packets[pktIdx])
         pktIdx++;
     assert(pktIdx < _packets.size());
-    // Either half of a split load reaching memory counts as off-chip.
-    if (isLoad() && pkt->req->isOffchip())
+    // Either half of a split access reaching memory counts as off-chip.
+    if (pkt->req->isOffchip())
         _inst->wentOffchip = true;
     numReceivedPackets++;
     if (numReceivedPackets == _packets.size()) {
@@ -1588,6 +1595,22 @@ LSQ::issueHermes(Addr paddr, InstSeqNum seq_num)
 
     hermesQueue.push_back({cpu->clockEdge(hermesIssueLatency),
                            new Packet(req, MemCmd::HermesReadReq), seq_num});
+
+    if (!hermesEvent.scheduled())
+        cpu->schedule(hermesEvent, hermesQueue.front().when);
+}
+
+void
+LSQ::cancelSentHermes(Addr paddr)
+{
+    // the cancel takes the same path as the request, so it cannot pass it
+    const unsigned line_size = cpu->cacheLineSize();
+    Request::Flags flags;
+    RequestPtr req = std::make_shared<Request>(
+        addrBlockAlign(paddr, line_size), line_size, flags, hermesRequestorId);
+
+    hermesQueue.push_back({cpu->clockEdge(hermesIssueLatency),
+                           new Packet(req, MemCmd::HermesCancelReq), 0});
 
     if (!hermesEvent.scheduled())
         cpu->schedule(hermesEvent, hermesQueue.front().when);

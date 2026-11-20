@@ -38,8 +38,9 @@ class Popet
         NumFeatures
     };
 
+    /** stats_group names the stats, so a second POPET can predict stores */
     Popet(statistics::Group *parent, const BaseO3CPUParams &params,
-          const std::string &name);
+          const std::string &name, const char *stats_group = "popet");
 
     std::string name() const { return _name; }
 
@@ -85,7 +86,7 @@ class Popet
 
     struct PopetStats : public statistics::Group
     {
-        PopetStats(statistics::Group *parent);
+        PopetStats(statistics::Group *parent, const char *group);
 
         statistics::Scalar predictions;
         statistics::Scalar predictedOffchip;

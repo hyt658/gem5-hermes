@@ -919,6 +919,24 @@ class LSQ
     /** Hermes off-chip load predictor; nullptr when popetEnable is off. */
     std::unique_ptr<Popet> popet;
 
+    /** Stores also send Hermes requests when written to the cache. */
+    bool hermesStoresEnabled() const { return enableHermes && hermesStores; }
+
+    /** A squashed load cancels its Hermes request at the memory controller. */
+    bool hermesCancelEnabled() const
+    {
+        return enableHermes && hermesCancelSquashed;
+    }
+
+    /**
+     * Tell the memory controller to drop the Hermes read of this line if it
+     * is still waiting in the read queue.
+     */
+    void cancelSentHermes(Addr paddr);
+
+    /** A second POPET for stores; nullptr unless both are enabled. */
+    std::unique_ptr<Popet> storePopet;
+
     /**
      * Send a Hermes request for the cache line of a physical address. It
      * reaches the memory controller after the Hermes issue latency.
@@ -1003,6 +1021,10 @@ class LSQ
     const Cycles hermesIssueLatency;
 
     const bool hermesDropSquashed;
+
+    const bool hermesStores;
+
+    const bool hermesCancelSquashed;
 
     /** 
      * Assign Hermes requests a unique requestor ID so stats count them apart from

@@ -89,6 +89,16 @@ class BaseO3CPU(BaseCPU):
         "Drop the queued Hermes request of a load that is squashed "
         "before the request is sent",
     )
+    hermes_stores = Param.Bool(
+        False,
+        "Also send a Hermes request when a store is written to the cache; "
+        "with POPET, a second POPET predicts stores",
+    )
+    hermes_cancel_squashed = Param.Bool(
+        False,
+        "A squashed load whose Hermes request was already sent tells the "
+        "memory controller to drop it",
+    )
     hermes_port = RequestPort(
         "Port that sends Hermes requests directly to the memory controller"
     )

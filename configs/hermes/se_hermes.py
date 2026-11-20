@@ -114,6 +114,18 @@ def parse_args():
         "a time, closer to the ChampSim core of the paper",
     )
     parser.add_argument(
+        "--cancel-squashed",
+        action="store_true",
+        help="A squashed load whose Hermes request was already sent tells "
+        "the memory controller to drop it",
+    )
+    parser.add_argument(
+        "--hermes-stores",
+        action="store_true",
+        help="Stores also send a Hermes request when they are written to the "
+        "cache, predicted by a second POPET when --popet is given",
+    )
+    parser.add_argument(
         "--issue-latency",
         type=int,
         default=6,
@@ -272,6 +284,8 @@ def build_system(args):
         system.cpu.enable_hermes = True
         system.cpu.hermes_issue_latency = args.issue_latency
         system.cpu.hermes_drop_squashed = args.drop_squashed
+        system.cpu.hermes_stores = args.hermes_stores
+        system.cpu.hermes_cancel_squashed = args.cancel_squashed
         system.cpu.hermes_port = system.mem_ctrl.hermes_port
 
     if args.popet:

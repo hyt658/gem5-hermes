@@ -381,6 +381,10 @@ class LSQUnit
     /** Issues a Hermes request for a load if it is eligible for one. */
     void tryIssueHermes(const DynInstPtr &load_inst, LSQRequest *request);
 
+    /** Issues a Hermes request for a store being written to the cache. */
+    void tryIssueStoreHermes(const DynInstPtr &store_inst,
+                             LSQRequest *request);
+
   public:
     /** Attempts to send a packet to the cache.
      * Check if there are ports available. Return true if
@@ -547,6 +551,12 @@ class LSQUnit
         /** Number of Hermes requests of squashed loads dropped before
          * being sent. */
         statistics::Scalar droppedSquashedHermes;
+
+        /** Number of Hermes requests issued by stores. */
+        statistics::Scalar issuedStoreHermes;
+
+        /** Number of cancels sent for Hermes requests of squashed loads. */
+        statistics::Scalar cancelSentHermes;
 
         /** Distribution of cycle latency between the first time a load
          * is issued and its completion */
