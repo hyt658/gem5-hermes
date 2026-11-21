@@ -1,0 +1,11 @@
+base_notso|--no-tso
+O_popet_notso|--no-tso --hermes --popet
+P_popet_notso|--no-tso --hermes --popet --issue-latency=18
+O_popet_st_notso|--no-tso --hermes --popet --hermes-stores
+O_popet_tm5|--hermes --popet --popet-threshold=-5
+O_popet_t0|--hermes --popet --popet-threshold=0
+O_popet_t5|--hermes --popet --popet-threshold=5
+O_popet_t10|--hermes --popet --popet-threshold=10
+O_popet_t15|--hermes --popet --popet-threshold=15
+base_paper|--dram=ddr4_3200_paper
+O_popet_paper|--dram=ddr4_3200_paper --hermes --popet

@@ -1,0 +1,17 @@
+lbm_O_popet_q4 exit=0 2076s
+roms_O_popet_q4 exit=0 2456s
+roms_O_popet_q8 exit=0 2486s
+bwaves_O_popet_q8 exit=0 2488s
+mcf_O_popet_q4 exit=0 2501s
+lbm_O_popet_q8 exit=0 2583s
+bwaves_O_popet_q4 exit=0 2827s
+mcf_O_popet_q8 exit=0 2304s
+mcf_O_popet_q16 exit=0 2116s
+roms_O_popet_q16 exit=0 2285s
+bwaves_O_popet_q16 exit=0 2631s
+bwaves_O_popet_t5_q8 exit=0 2311s
+lbm_O_popet_q16 exit=0 2737s
+lbm_O_popet_t5_q8 exit=0 2745s
+roms_O_popet_t5_q8 exit=0 1578s
+mcf_O_popet_t5_q8 exit=0 1732s
+ALL_DONE

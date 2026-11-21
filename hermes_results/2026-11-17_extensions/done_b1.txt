@@ -1,0 +1,25 @@
+roms_base_3200 exit=0 2380s
+mcf_base_3200 exit=0 2583s
+lbm_base_3200 exit=0 2743s
+bwaves_base_3200 exit=0 2751s
+lbm_O_popet_3200 exit=0 2789s
+bwaves_O_popet_3200 exit=0 2916s
+roms_O_popet_3200 exit=0 2774s
+roms_base_spp exit=0 2670s
+mcf_O_popet_3200 exit=0 3268s
+lbm_base_spp exit=0 3223s
+bwaves_base_spp exit=0 3367s
+mcf_base_spp exit=0 3389s
+lbm_O_popet_spp exit=0 3575s
+roms_O_popet_spp exit=0 3185s
+bwaves_O_popet_spp exit=0 3676s
+mcf_O_popet_spp exit=0 3653s
+lbm_base_6400 exit=0 3748s
+bwaves_base_6400 exit=0 3853s
+roms_base_6400 exit=0 3191s
+mcf_base_6400 exit=0 3476s
+lbm_O_popet_6400 exit=0 3593s
+roms_O_popet_6400 exit=0 3010s
+bwaves_O_popet_6400 exit=0 3435s
+mcf_O_popet_6400 exit=0 3152s
+ALL_DONE

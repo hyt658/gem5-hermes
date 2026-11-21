@@ -1,0 +1,4 @@
+O_popet_q4|--hermes --popet --hermes-max-rdq=4
+O_popet_q8|--hermes --popet --hermes-max-rdq=8
+O_popet_q16|--hermes --popet --hermes-max-rdq=16
+O_popet_t5_q8|--hermes --popet --popet-threshold=5 --hermes-max-rdq=8

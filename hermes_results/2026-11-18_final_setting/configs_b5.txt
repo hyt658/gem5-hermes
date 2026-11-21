@@ -1,0 +1,5 @@
+base_final|--no-tso --dram=ddr4_3200_paper
+O_popet_final|--no-tso --dram=ddr4_3200_paper --hermes --popet --popet-threshold=5
+P_popet_final|--no-tso --dram=ddr4_3200_paper --hermes --popet --popet-threshold=5 --issue-latency=18
+O_popet_st_final|--no-tso --dram=ddr4_3200_paper --hermes --popet --popet-threshold=5 --hermes-stores
+O_popet_final_tdef|--no-tso --dram=ddr4_3200_paper --hermes --popet
