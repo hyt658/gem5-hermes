@@ -1,0 +1,3 @@
+bfs|/home/ec2-user/gapbs|/home/ec2-user/gapbs/bfs|-f /home/ec2-user/gap_graphs/kron20.sg -n 128|
+pr|/home/ec2-user/gapbs|/home/ec2-user/gapbs/pr|-f /home/ec2-user/gap_graphs/kron20.sg -n 4 -i 20|
+cc|/home/ec2-user/gapbs|/home/ec2-user/gapbs/cc|-f /home/ec2-user/gap_graphs/kron20.sg -n 128|

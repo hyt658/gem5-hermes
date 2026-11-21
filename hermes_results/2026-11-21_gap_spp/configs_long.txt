@@ -1,0 +1,2 @@
+base_final_long|--no-tso --dram=ddr4_3200_1r8b
+O_popet_final_long|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5

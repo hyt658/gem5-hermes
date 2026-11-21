@@ -1,0 +1,1 @@
+O_popet_spp_tdef|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=-17 --prefetcher=spp

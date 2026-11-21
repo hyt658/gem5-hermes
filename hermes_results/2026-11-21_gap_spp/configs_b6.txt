@@ -1,0 +1,7 @@
+base_final|--no-tso --dram=ddr4_3200_1r8b
+O_popet_final|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5
+P_popet_final|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --issue-latency=18
+O_popet_st_final|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --hermes-stores
+base_spp_final|--no-tso --dram=ddr4_3200_1r8b --prefetcher=spp
+O_popet_spp_final|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --prefetcher=spp
+P_popet_spp_final|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --issue-latency=18 --prefetcher=spp
