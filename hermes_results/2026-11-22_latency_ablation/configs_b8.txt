@@ -1,0 +1,3 @@
+O_lat0|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --issue-latency=0
+O_lat12|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --issue-latency=12
+O_lat24|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --issue-latency=24

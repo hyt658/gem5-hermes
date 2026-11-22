@@ -1,0 +1,5 @@
+O_noF0|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --popet-feature-mask=30
+O_noF1|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --popet-feature-mask=29
+O_noF2|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --popet-feature-mask=27
+O_noF3|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --popet-feature-mask=23
+O_noF4|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --popet-feature-mask=15
