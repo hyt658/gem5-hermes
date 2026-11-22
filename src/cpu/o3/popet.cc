@@ -78,6 +78,7 @@ Popet::Popet(statistics::Group *parent, const BaseO3CPUParams &params,
       pageBufSets(params.popetPageBufSets),
       pageBufAssoc(params.popetPageBufAssoc),
       lastNLoadPCs(params.popetLastNLoadPCs),
+      featureMask(params.popetFeatureMask),
       pageBuffer(params.popetPageBufSets),
       stats(parent, stats_group)
 {
@@ -148,7 +149,9 @@ Popet::predict(const DynInstPtr &inst, Addr vaddr)
     int sum = 0;
     for (int f = 0; f < NumFeatures; f++) {
         inst->popetIdx[f] = jenkins(key[f]) % WeightTableSize[f];
-        sum += weights[f][inst->popetIdx[f]];
+        if (featureMask & (1u << f)) {
+            sum += weights[f][inst->popetIdx[f]];
+        }
     }
 
     const bool pred = sum >= actThreshold;
@@ -171,6 +174,9 @@ void
 Popet::updateWeights(const uint16_t *idx, int delta)
 {
     for (int f = 0; f < NumFeatures; f++) {
+        if (!(featureMask & (1u << f))) {
+            continue;
+        }
         int w = weights[f][idx[f]] + delta;
         if (w <= maxWeight && w >= minWeight) {
             weights[f][idx[f]] = w;

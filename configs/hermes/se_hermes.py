@@ -100,6 +100,12 @@ def parse_args():
         "least this goes off-chip; the default is the authors' -17",
     )
     parser.add_argument(
+        "--popet-feature-mask",
+        type=int,
+        default=31,
+        help="Bit mask of the POPET features in use (31 = all five)",
+    )
+    parser.add_argument(
         "--hermes-max-rdq",
         type=int,
         default=0,
@@ -292,6 +298,7 @@ def build_system(args):
         system.cpu.popetEnable = True
     if args.popet_threshold is not None:
         system.cpu.popetActThreshold = args.popet_threshold
+    system.cpu.popetFeatureMask = args.popet_feature_mask
     if args.no_tso:
         system.cpu.needsTSO = False
 

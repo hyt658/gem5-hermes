@@ -235,3 +235,6 @@ class BaseO3CPU(BaseCPU):
     popetLastNLoadPCs = Param.Unsigned(
         4, "Number of load PCs in the control-flow signature"
     )
+    popetFeatureMask = Param.Unsigned(
+        31, "Bit mask of the POPET features in use (31 = all five)"
+    )

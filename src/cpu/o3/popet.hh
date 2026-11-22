@@ -78,6 +78,8 @@ class Popet
     const unsigned pageBufSets;
     const unsigned pageBufAssoc;
     const unsigned lastNLoadPCs;
+    /** Bit f set = feature f is used, for leave-one-out studies. */
+    const unsigned featureMask;
 
     std::vector<int8_t> weights[NumFeatures];
     /** Each set is kept in LRU order, MRU at the back. */
