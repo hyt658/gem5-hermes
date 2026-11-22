@@ -181,6 +181,12 @@ def parse_args():
         "and back, which drains the system while Hermes requests are in "
         "flight",
     )
+    parser.add_argument(
+        "--llc-repl",
+        choices=["lru", "ship"],
+        default="lru",
+        help="LLC replacement policy",
+    )
     args = parser.parse_args()
 
     if args.repeat_switch and not args.fast_forward:
@@ -253,6 +259,8 @@ def build_system(args):
     system.l1d = make_cache("48kB", 12, 4, 16)
     system.l2 = make_cache("1280kB", 20, 8, 48)
     system.l3 = make_cache("3MB", 12, 36, 64)
+    if args.llc_repl == "ship":
+        system.l3.replacement_policy = SHiPPCRP()
     if args.prefetcher:
         system.l2.prefetcher = PREFETCHERS[args.prefetcher]()
 
