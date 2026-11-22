@@ -1,0 +1,7 @@
+base_ship|--no-tso --dram=ddr4_3200_1r8b --llc-repl=ship
+O_ship|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=5 --llc-repl=ship
+O_t4_noF0|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=4 --popet-feature-mask=30
+O_t4_noF1|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=4 --popet-feature-mask=29
+O_t4_noF2|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=4 --popet-feature-mask=27
+O_t4_noF3|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=4 --popet-feature-mask=23
+O_t4_noF4|--no-tso --dram=ddr4_3200_1r8b --hermes --popet --popet-threshold=4 --popet-feature-mask=15
