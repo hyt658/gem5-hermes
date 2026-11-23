@@ -40,6 +40,8 @@
 
 #include "mem/mem_ctrl.hh"
 
+#include <algorithm>
+
 #include "base/trace.hh"
 #include "debug/DRAM.hh"
 #include "debug/Drain.hh"
@@ -57,6 +59,20 @@ namespace gem5
 
 namespace memory
 {
+
+namespace
+{
+
+// The load that sent a Hermes request, for the debug output that ties each
+// outcome to the fate of its load. A sender that names no load, like the
+// tester, gets 0
+InstSeqNum
+hermesSeqNum(const PacketPtr pkt)
+{
+    return pkt->req->hasInstSeqNum() ? pkt->req->getReqInstSeqNum() : 0;
+}
+
+} // anonymous namespace
 
 MemCtrl::MemCtrl(const MemCtrlParams &p) :
     qos::MemCtrl(p),
@@ -533,7 +549,7 @@ MemCtrl::recvHermesReq(PacketPtr pkt)
 
     if (readQueueFull(pkt_count)) {
         DPRINTF(HermesMem, "Read queue full, dropping Hermes request to "
-                "addr %#x\n", pkt->getAddr());
+                "addr %#x [sn:%llu]\n", pkt->getAddr(), hermesSeqNum(pkt));
         stats.hermesDropFull++;
         pendingDelete.reset(pkt);
         return;
@@ -543,7 +559,7 @@ MemCtrl::recvHermesReq(PacketPtr pkt)
     // regular reads behind it
     if (hermesMaxReadQueue > 0 && totalReadQueueSize >= hermesMaxReadQueue) {
         DPRINTF(HermesMem, "Read queue busy, dropping Hermes request to "
-                "addr %#x\n", pkt->getAddr());
+                "addr %#x [sn:%llu]\n", pkt->getAddr(), hermesSeqNum(pkt));
         stats.hermesDropThrottle++;
         pendingDelete.reset(pkt);
         return;
@@ -552,7 +568,7 @@ MemCtrl::recvHermesReq(PacketPtr pkt)
     // a read of this burst is already in flight, so current Hermes read is useless.
     if (findInFlightRead(burstAlign(pkt->getAddr(), dram))) {
         DPRINTF(HermesMem, "Read in flight, dropping Hermes request to "
-                "addr %#x\n", pkt->getAddr());
+                "addr %#x [sn:%llu]\n", pkt->getAddr(), hermesSeqNum(pkt));
         stats.hermesDropInFlight++;
         pendingDelete.reset(pkt);
         return;
@@ -566,6 +582,9 @@ MemCtrl::recvHermesReq(PacketPtr pkt)
             schedule(nextReqEvent, curTick());
         }
     } else {
+        DPRINTF(HermesMem, "Write queue holds addr %#x, Hermes request "
+                "[sn:%llu] needs no DRAM read\n", pkt->getAddr(),
+                hermesSeqNum(pkt));
         stats.hermesServicedByWrQ++;
     }
 }
@@ -589,8 +608,8 @@ MemCtrl::cancelHermesReq(PacketPtr pkt)
                 return;
             }
 
-            DPRINTF(HermesMem, "Cancelling Hermes read of addr %#x\n",
-                    mem_pkt->addr);
+            DPRINTF(HermesMem, "Cancelling Hermes read of addr %#x "
+                    "[sn:%llu]\n", mem_pkt->addr, hermesSeqNum(mem_pkt->pkt));
             queue.erase(it);
 
             // undo what addToReadQueue() counted for this burst
@@ -650,13 +669,24 @@ MemCtrl::mergeWithHermes(PacketPtr pkt)
         return false;
     }
 
-    DPRINTF(HermesMem, "Read to addr %#x merged with Hermes request\n",
-            pkt->getAddr());
+    DPRINTF(HermesMem, "Read to addr %#x merged with Hermes request "
+            "[sn:%llu]\n", pkt->getAddr(), hermesSeqNum(mem_pkt->pkt));
 
     // a Hermes entry is a single read burst, so it answers exactly one read
     assert(mem_pkt->isRead() && !mem_pkt->burstHelper);
 
     stats.hermesMerged++;
+
+    // an entry in the response queue has already been sent to DRAM, while
+    // one in the read queue still waits for the scheduler
+    if (std::find(respQueue.begin(), respQueue.end(), mem_pkt) !=
+            respQueue.end()) {
+        stats.hermesMergedIssued++;
+    } else {
+        stats.hermesMergedQueued++;
+    }
+    stats.hermesHeadStart += curTick() - mem_pkt->entryTime;
+    mem_pkt->takeoverTime = curTick();
 
     // the DRAM access keeps its place, and now answers the regular read
     pendingDelete.reset(mem_pkt->pkt);
@@ -697,9 +727,25 @@ MemCtrl::processRespondEvent(MemInterface* mem_intr,
     } else {
         // a Hermes packet still here was never taken over by a regular read
         if (mem_pkt->pkt->isHermes()) {
-            DPRINTF(HermesMem, "Hermes read of addr %#x finished unused\n",
-                    mem_pkt->pkt->getAddr());
+            DPRINTF(HermesMem, "Hermes read of addr %#x finished unused "
+                    "[sn:%llu]\n", mem_pkt->pkt->getAddr(),
+                    hermesSeqNum(mem_pkt->pkt));
             stats.hermesUnused++;
+        } else {
+            // a taken-over read arrived at takeoverTime, after its Hermes
+            // entry was created
+            const bool merged = mem_pkt->takeoverTime != MaxTick;
+            const Tick arrival = merged ? mem_pkt->takeoverTime :
+                mem_pkt->entryTime;
+            const Tick latency = curTick() + frontendLatency +
+                backendLatency - arrival;
+            if (merged) {
+                stats.mergedReadLat += latency;
+                stats.mergedReadResps++;
+            } else {
+                stats.unmergedReadLat += latency;
+                stats.unmergedReadResps++;
+            }
         }
 
         // it is not a split packet
@@ -1417,6 +1463,34 @@ MemCtrl::CtrlStats::CtrlStats(MemCtrl &_ctrl)
              "their load was squashed"),
     ADD_STAT(hermesCancelReqs, statistics::units::Count::get(),
              "Number of Hermes cancels received"),
+    ADD_STAT(hermesMergedQueued, statistics::units::Count::get(),
+             "Number of takeovers whose Hermes read was still in the read "
+             "queue"),
+    ADD_STAT(hermesMergedIssued, statistics::units::Count::get(),
+             "Number of takeovers whose Hermes read was already sent to "
+             "DRAM"),
+    ADD_STAT(hermesHeadStart, statistics::units::Tick::get(),
+             "Total time from a Hermes request to the read taking it over"),
+    ADD_STAT(avgHermesHeadStart, statistics::units::Rate<
+                statistics::units::Tick, statistics::units::Count>::get(),
+             "Average time from a Hermes request to the read taking it over"),
+    ADD_STAT(mergedReadLat, statistics::units::Tick::get(),
+             "Total controller latency of reads that took over a Hermes read"),
+    ADD_STAT(mergedReadResps, statistics::units::Count::get(),
+             "Number of reads that took over a Hermes read and got data"),
+    ADD_STAT(avgMergedReadLat, statistics::units::Rate<
+                statistics::units::Tick, statistics::units::Count>::get(),
+             "Average controller latency of reads that took over a Hermes "
+             "read"),
+    ADD_STAT(unmergedReadLat, statistics::units::Tick::get(),
+             "Total controller latency of single-burst DRAM reads without a "
+             "takeover"),
+    ADD_STAT(unmergedReadResps, statistics::units::Count::get(),
+             "Number of single-burst DRAM reads without a takeover"),
+    ADD_STAT(avgUnmergedReadLat, statistics::units::Rate<
+                statistics::units::Tick, statistics::units::Count>::get(),
+             "Average controller latency of single-burst DRAM reads without "
+             "a takeover"),
 
     ADD_STAT(avgRdQLen, statistics::units::Rate<
                 statistics::units::Count, statistics::units::Tick>::get(),
@@ -1502,6 +1576,13 @@ MemCtrl::CtrlStats::regStats()
 
     avgRdQLen.precision(2);
     avgWrQLen.precision(2);
+
+    avgHermesHeadStart = hermesHeadStart / hermesMerged;
+    avgMergedReadLat = mergedReadLat / mergedReadResps;
+    avgUnmergedReadLat = unmergedReadLat / unmergedReadResps;
+    avgHermesHeadStart.precision(2);
+    avgMergedReadLat.precision(2);
+    avgUnmergedReadLat.precision(2);
 
     readPktSize.init(ceilLog2(ctrl.system()->cacheLineSize()) + 1);
     writePktSize.init(ceilLog2(ctrl.system()->cacheLineSize()) + 1);

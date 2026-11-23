@@ -106,6 +106,12 @@ class MemPacket
     Tick readyTime;
 
     /**
+     * When a regular read took over this Hermes read, or MaxTick if none
+     * did. The latency of that read starts here, not at entryTime.
+     */
+    Tick takeoverTime;
+
+    /**
      * This comes from the outside world. Not const since a Hermes read packet
      * could be replaced by a regular read packet that merges with it.
      */
@@ -209,7 +215,8 @@ class MemPacket
     MemPacket(PacketPtr _pkt, bool is_read, bool is_dram, uint8_t _channel,
                uint8_t _rank, uint8_t _bank, uint32_t _row, uint16_t bank_id,
                Addr _addr, unsigned int _size)
-        : entryTime(curTick()), readyTime(curTick()), pkt(_pkt),
+        : entryTime(curTick()), readyTime(curTick()), takeoverTime(MaxTick),
+          pkt(_pkt),
           _requestorId(pkt->requestorId()),
           read(is_read), dram(is_dram), pseudoChannel(_channel), rank(_rank),
           bank(_bank), row(_row), bankId(bank_id), addr(_addr), size(_size),
@@ -622,6 +629,20 @@ class MemCtrl : public qos::MemCtrl
         statistics::Scalar hermesCancelled;
         // cancels received, including ones that found nothing to drop
         statistics::Scalar hermesCancelReqs;
+        // A takeover saves the most when the Hermes read has already
+        // started its DRAM access, and when it arrived well before the read
+        statistics::Scalar hermesMergedQueued;
+        statistics::Scalar hermesMergedIssued;
+        statistics::Scalar hermesHeadStart;
+        statistics::Formula avgHermesHeadStart;
+        // Latency in the controller, from arrival to response, of the
+        // single-burst reads that went to DRAM, with and without a takeover
+        statistics::Scalar mergedReadLat;
+        statistics::Scalar mergedReadResps;
+        statistics::Formula avgMergedReadLat;
+        statistics::Scalar unmergedReadLat;
+        statistics::Scalar unmergedReadResps;
+        statistics::Formula avgUnmergedReadLat;
         // Average queue lengths
         statistics::Average avgRdQLen;
         statistics::Average avgWrQLen;

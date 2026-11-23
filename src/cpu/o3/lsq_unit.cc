@@ -48,6 +48,7 @@
 #include "cpu/o3/limits.hh"
 #include "cpu/o3/lsq.hh"
 #include "debug/Activity.hh"
+#include "debug/HermesMem.hh"
 #include "debug/HtmCpu.hh"
 #include "debug/IEW.hh"
 #include "debug/LSQUnit.hh"
@@ -986,6 +987,8 @@ LSQUnit::squash(const InstSeqNum &squashed_num)
         // memory controller and either goes unused or serves a later read;
         // with hermes_drop_squashed, a request still in the queue is dropped
         if (loadQueue.back().instruction()->hermesIssued) {
+            DPRINTF(HermesMem, "Squashed load [sn:%llu] had issued a Hermes "
+                    "request\n", loadQueue.back().instruction()->seqNum);
             ++stats.squashedHermes;
             if (lsq->cancelHermes(loadQueue.back().instruction()->seqNum)) {
                 ++stats.droppedSquashedHermes;

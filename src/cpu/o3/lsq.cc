@@ -1592,6 +1592,8 @@ LSQ::issueHermes(Addr paddr, InstSeqNum seq_num)
     Request::Flags flags;
     RequestPtr req = std::make_shared<Request>(
         addrBlockAlign(paddr, line_size), line_size, flags, hermesRequestorId);
+    // names the load in the memory controller's Hermes debug output
+    req->setReqInstSeqNum(seq_num);
 
     hermesQueue.push_back({cpu->clockEdge(hermesIssueLatency),
                            new Packet(req, MemCmd::HermesReadReq), seq_num});
