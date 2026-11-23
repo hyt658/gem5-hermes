@@ -12,6 +12,7 @@ Regenerate the tables below with `python hermes_results/summarize.py`.
 | `2026-11-22_latency_ablation` | Issue latency 0 to 24 cycles and leave-one-out POPET feature ablation on 7 programs (see its README) |
 | `2026-11-22_ship_threshold4` | SHiP LLC on 6 programs (pr baseline fails in gem5) and ablation at threshold +4 (see its README) |
 | `2026-11-22_mcf_diagnosis` | Why Hermes helps mcf little: benefit and cost of the head start, and where the unused Hermes reads come from (see its README) |
+| `2026-11-23_bop_bandwidth` | Second prefetcher (BOP, with a gem5 fix), DRAM bandwidth 1600/3200/6400, and DRAM read counts (see its README) |
 
 The final setting is:
 

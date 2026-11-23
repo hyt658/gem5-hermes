@@ -39,11 +39,30 @@ class DDR4_3200_8x8_1R8B(DDR4_3200_8x8):
     bank_groups_per_rank = 2
 
 
+# Half and double the bandwidth of the paper's DRAM. Row and column latencies
+# (tRCD, tCL, tRP) stay the same, so only the bandwidth changes
+class DDR4_1600_8x8_1R8B(DDR4_3200_8x8_1R8B):
+    tCK = "1.25ns"
+    tBURST = "5ns"
+    tCCD_L = "10ns"
+    tRRD = "5ns"
+    tRRD_L = "9.8ns"
+    tXAW = "42ns"
+    tRTW = "2.5ns"
+    tCS = "2.5ns"
+
+class DDR4_6400_8x8_1R8B(DDR4_6400_8x8):
+    ranks_per_channel = 1
+    banks_per_rank = 8
+    bank_groups_per_rank = 2
+
 DRAMS = {
     "ddr4_2400": DDR4_2400_8x8,
     "ddr4_3200": DDR4_3200_8x8,
     "ddr4_3200_1r8b": DDR4_3200_8x8_1R8B,
     "ddr4_6400": DDR4_6400_8x8,
+    "ddr4_1600_1r8b": DDR4_1600_8x8_1R8B,
+    "ddr4_6400_1r8b": DDR4_6400_8x8_1R8B,
 }
 
 # the atomic CPU only runs for a few hundred instructions in each switch

@@ -1,0 +1,21 @@
+diff --git a/src/mem/cache/prefetch/bop.cc b/src/mem/cache/prefetch/bop.cc
+index ce2502bee6..7106546643 100644
+--- a/src/mem/cache/prefetch/bop.cc
++++ b/src/mem/cache/prefetch/bop.cc
+@@ -213,14 +213,13 @@ BOP::bestOffsetLearning(Addr x)
+         // (1) One of the scores equals SCORE_MAX
+         // (2) The number of rounds equals ROUND_MAX
+         if ((bestScore >= scoreMax) || (round == roundMax)) {
++            // Decide on/off once per learning phase, as in the BOP paper
++            issuePrefetchRequests = bestScore > badScore;
+             bestOffset = phaseBestOffset;
+             round = 0;
+             bestScore = 0;
+             phaseBestOffset = 0;
+             resetScores();
+-            issuePrefetchRequests = true;
+-        } else if (bestScore <= badScore) {
+-            issuePrefetchRequests = false;
+         }
+     }
+ }
