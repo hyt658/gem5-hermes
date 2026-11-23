@@ -1,0 +1,39 @@
+build: done
+=== exit codes
+mcf_L100: exit 0
+mcf_O: exit 0
+mcf_O_trace: exit 0
+mcf_P: exit 0
+=== same results as the partner's runs, so the new stats change nothing
+mcf_O: PASS, 19 statistics identical
+mcf_P: PASS, 19 statistics identical
+mcf_O_trace: PASS, 19 statistics identical
+=== benefit and cost of Hermes per LLC miss
+run                IPC    gain  LLC ns   delta   taken  head ns   x ns   unused  extra rd
+mcf_base        0.6478       -    94.4       -       -        -      -        -         -
+mcf_O           0.6429   -0.74    93.8   -0.58   77.5%     16.0  12.36   199355    199436
+mcf_L100        0.6273   -3.16   101.6   +7.23    9.9%     28.7   2.83   199190    199285
+mcf_P           0.6396   -1.26    95.4   +1.05   77.5%     13.1  10.14   198048    198134
+
+realized share of the head start k = 82%
+benefit -k*x = -10.1 ns, cost of extra reads C = +9.5 ns, net -0.6 ns per LLC miss
+check with mcf_P: predicted +1.2 ns, measured +1.0 ns
+=== where the unused Hermes reads come from
+trace 545000000250 to 545999987500 ticks, counting outcomes in 545020000250 to 545979987500
+trained loads 931350, squashed loads with Hermes 15187
+
+load fate               merged       unused dropInFlight     dropFull   writeQueue    total
+falsePositive             1092         7971          761            0            0     9824
+truePositive             32952          207           38            0            2    33199
+squashed                 12549         1524          268            0            0    14341
+predictedOnChip              0            0            0            0            0        0
+unknown                      0            0            0            0            0        0
+total                    46593         9702         1067            0            2    57364
+
+where the unused Hermes reads come from
+  falsePositive        7971   82.2%
+  truePositive          207    2.1%
+  squashed             1524   15.7%
+  predictedOnChip         0    0.0%
+  unknown                 0    0.0%
+all: 1690s
