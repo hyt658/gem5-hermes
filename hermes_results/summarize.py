@@ -81,7 +81,7 @@ table("Memory controller throttle (TSO, DDR4-2400)", [
     ("max read queue 16", runs(FINAL, "O_popet_q16"), base),
     ("threshold +5, queue 8", runs(FINAL, "O_popet_t5_q8"), base),
 ])
-table("Extensions (TSO, threshold -17)", [
+table("Extensions (old setting: TSO, threshold -17, 2 ranks, 16 banks)", [
     ("Hermes-O + stores", runs(EXT, "O_popet_st"), base),
     ("Hermes-O + cancel", runs(EXT, "O_popet_cancel"), base),
     ("Hermes-O + stores + cancel", runs(EXT, "O_popet_st_cancel"), base),

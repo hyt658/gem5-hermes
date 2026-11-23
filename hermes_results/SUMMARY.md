@@ -1,4 +1,4 @@
-# Hermes results, 11/17 to 11/20
+# Hermes results, 11/17 to 11/23
 
 Each run is 1B instructions of fast-forward, 20M of warmup and 50M measured.
 Regenerate the tables below with `python hermes_results/summarize.py`.
@@ -32,6 +32,10 @@ The 11/18 runs used the flag name `ddr4_3200_paper` for the same DRAM.
 - Threshold +5 was picked on the same 4 programs it is reported on.
 - `--no-tso` removes gem5's one-store-at-a-time limit to get closer to
   ChampSim. It is not a model of a real x86 core.
+
+The DDR4-3200 and DDR4-6400 rows under Extensions use the old setting. For DRAM
+bandwidth in the final setting (no TSO limit, threshold +5, 1 rank, 8 banks), see
+`2026-11-23_bop_bandwidth`.
 
 ## Tables
 
@@ -80,7 +84,7 @@ All values are IPC relative to the listed baseline (1.000 = no change).
 | max read queue 16 | 0.998 | 0.987 | 1.004 | 0.993 | 0.996 |
 | threshold +5, queue 8 | 0.998 | 0.988 | 1.005 | 1.012 | 1.001 |
 
-### Extensions (TSO, threshold -17)
+### Extensions (old setting: TSO, threshold -17, 2 ranks, 16 banks)
 
 | Config | lbm | bwaves | roms | mcf | Geomean |
 |---|---:|---:|---:|---:|---:|
